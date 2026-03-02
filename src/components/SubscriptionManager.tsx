@@ -178,22 +178,12 @@ const SubscriptionManager: React.FC = () => {
   return (
     <div className="w-full space-y-6">
       <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Subscription Details
-              </CardTitle>
-              <CardDescription>Manage your subscription and billing</CardDescription>
-            </div>
-            {isTrial && (
-              <Button
-                onClick={() => navigate('/pricing')}
-                className="trial-cta text-white rounded-md h-10 px-4 shrink-0"
-              >
-                Update
-              </Button>
-            )}
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Subscription Details
+            </CardTitle>
+            <CardDescription>Manage your subscription and billing</CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -297,11 +287,21 @@ const SubscriptionManager: React.FC = () => {
               const hasValidPeriod = periodEnd > 0 && periodStart > 0;
               if (!hasValidPeriod) return null;
               return (
-                <div className="space-y-2">
-                  <span className="text-sm text-gray-600">Billing Period</span>
-                  <p className="text-sm">
-                    {formatDate(periodStart)} - {formatDate(periodEnd)}
-                  </p>
+                <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-600">Billing Period</span>
+                    <p className="text-sm">
+                      {formatDate(periodStart)} - {formatDate(periodEnd)}
+                    </p>
+                  </div>
+                  {isTrial && (
+                    <Button
+                      onClick={() => navigate('/pricing')}
+                      className="trial-cta text-white rounded-md h-10 px-4 shrink-0"
+                    >
+                      Update
+                    </Button>
+                  )}
                 </div>
               );
             })()}
