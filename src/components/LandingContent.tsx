@@ -16,7 +16,7 @@ import successPhoneImg from '@/assets/images/hand-holding-smartphone-displaying-
 import problemImg1 from '@/assets/images/happy-man.jpg';
 import problemImg2 from '@/assets/images/marketing-pretty-young-blonde-girl-grey-suit-office-very-upset-tired_140725-165512.avif';
 import problemImg3 from '@/assets/images/Success-Man.jpg';
-import problemImg4 from '@/assets/images/Family-connection.jpg';  
+import problemImg4 from '@/assets/images/family-connection.jpg';  
 import problemImg5 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
 
 const heroSlides = [
