@@ -50,6 +50,11 @@ const AppLayout: React.FC = () => {
     return () => observer.disconnect();
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (user && !subscriptionLoading && trialExpired && location.pathname === '/') {
+      navigate('/settings', { replace: true, state: { trialExpiredRedirect: true } });
+    }
+  }, [user, subscriptionLoading, trialExpired, location.pathname, navigate]);
 
   const scrollToSection = useCallback((id: string) => {
     setMobileMenuOpen(false);
@@ -81,12 +86,6 @@ const AppLayout: React.FC = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (user && !subscriptionLoading && trialExpired && location.pathname === '/') {
-      navigate('/settings', { replace: true, state: { trialExpiredRedirect: true } });
-    }
-  }, [user, subscriptionLoading, trialExpired, location.pathname, navigate]);
 
   if (user) {
     if (!subscriptionLoading && trialExpired && location.pathname === '/') {
