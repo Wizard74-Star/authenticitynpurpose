@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, CreditCard, Bell } from 'lucide-react';
@@ -11,6 +13,18 @@ import { TrialBanner } from '@/components/TrialBanner';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const state = location.state as { trialExpiredRedirect?: boolean } | null;
+    if (state?.trialExpiredRedirect) {
+      toast.warning('Your trial has ended', {
+        description: 'Subscribe to continue using Dashboard, Goals, Progress, Journals, and Calendar.',
+      });
+      navigate('/settings', { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   if (!user) {
     return (

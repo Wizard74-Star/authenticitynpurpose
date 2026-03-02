@@ -24,7 +24,7 @@ async function isAdmin(
 
 function getAuthPayload(
   req: { method?: string; body?: unknown; query?: Record<string, string | string[] | undefined> }
-): { id?: string; email?: string; password?: string; user_metadata?: Record<string, unknown> } {
+): { id?: string; email?: string; password?: string; user_metadata?: Record<string, unknown>; action?: string } {
   const id =
     typeof req.query?.id === 'string'
       ? req.query.id
@@ -40,6 +40,7 @@ function getAuthPayload(
     email: body?.email as string | undefined,
     password: body?.password as string | undefined,
     user_metadata: body?.user_metadata as Record<string, unknown> | undefined,
+    action: body?.action as string | undefined,
   };
 }
 
@@ -116,7 +117,7 @@ export default async function handler(
     return;
   }
 
-  const { id, email, password, user_metadata } = getAuthPayload(req);
+  const { id, email, password, user_metadata, action } = getAuthPayload(req);
 
   try {
     if (req.method === 'GET') {
@@ -194,11 +195,30 @@ export default async function handler(
         res.status(400).json({ error: 'Missing user id (body id or query id)' });
         return;
       }
+      if (action === 'upgrade_trial_to_premium') {
+        const { data: sub, error: subError } = await supabase
+          .from('subscriptions')
+          .update({ status: 'active' })
+          .eq('user_id', id)
+          .eq('status', 'trialing')
+          .select('id, status')
+          .maybeSingle();
+        if (subError) {
+          res.status(500).json({ error: subError.message });
+          return;
+        }
+        if (!sub) {
+          res.status(404).json({ error: 'No trialing subscription found for this user' });
+          return;
+        }
+        res.status(200).json({ success: true, subscription: { id: sub.id, status: sub.status } });
+        return;
+      }
       const updates: { email?: string; user_metadata?: Record<string, unknown> } = {};
       if (typeof email === 'string' && email.trim()) updates.email = email.trim().toLowerCase();
       if (user_metadata && typeof user_metadata === 'object') updates.user_metadata = user_metadata;
       if (Object.keys(updates).length === 0) {
-        res.status(400).json({ error: 'No updates provided (email or user_metadata)' });
+        res.status(400).json({ error: 'No updates provided (email, user_metadata, or action)' });
         return;
       }
       const { data: { user }, error } = await supabase.auth.admin.updateUserById(id, updates);

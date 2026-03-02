@@ -34,7 +34,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!subscriptionLoading && trialExpired && pathname !== SETTINGS_PATH && pathname !== PAYMENT_SUCCESS_PATH) {
-    return <Navigate to={SETTINGS_PATH} replace />;
+    return <Navigate to={SETTINGS_PATH} replace state={{ trialExpiredRedirect: true }} />;
   }
 
   return <>{children}</>;

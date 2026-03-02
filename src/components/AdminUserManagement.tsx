@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, RefreshCw, Users, ShieldAlert, Search, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, RefreshCw, Users, ShieldAlert, Search, UserPlus, Pencil, Trash2, ArrowUpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 
@@ -53,6 +53,7 @@ export function AdminUserManagement() {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [upgradeSubmitting, setUpgradeSubmitting] = useState(false);
   const lastFetchedTokenRef = useRef<string | null>(null);
 
   const token = session?.access_token ?? null;
@@ -214,6 +215,27 @@ export function AdminUserManagement() {
       fetchUsers();
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const handleUpgradeTrialToPremium = async () => {
+    if (!selectedId || !token || selected?.access_type !== 'trial') return;
+    setUpgradeSubmitting(true);
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: selectedId, action: 'upgrade_trial_to_premium' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: (data?.error as string) || 'Failed to upgrade to premium', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Trial upgraded to premium (active)' });
+      fetchUsers();
+    } finally {
+      setUpgradeSubmitting(false);
     }
   };
 
@@ -390,6 +412,21 @@ export function AdminUserManagement() {
                         </div>
                       </dl>
                       <div className="flex flex-col gap-2 pt-2">
+                        {selected.access_type === 'trial' && (
+                          <Button
+                            size="sm"
+                            className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={handleUpgradeTrialToPremium}
+                            disabled={upgradeSubmitting}
+                          >
+                            {upgradeSubmitting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ArrowUpCircle className="h-4 w-4" />
+                            )}
+                            Trial → Premium (active)
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" className="w-full gap-2" onClick={openEdit}>
                           <Pencil className="h-4 w-4" />
                           Edit user
