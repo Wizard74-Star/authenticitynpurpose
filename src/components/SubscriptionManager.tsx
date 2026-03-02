@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, CreditCard, AlertCircle, CheckCircle, Users, Clock, Zap } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Calendar, CreditCard, AlertCircle, CheckCircle, Clock, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -26,6 +27,7 @@ interface Subscription {
 }
 
 const SubscriptionManager: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     status,
@@ -174,26 +176,24 @@ const SubscriptionManager: React.FC = () => {
   const showSubscribedDays = status === 'active' && subscribedDaysInPeriod != null && periodLengthDays != null;
 
   return (
-    <Tabs defaultValue="subscription" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="subscription">
-          <CreditCard className="h-4 w-4 mr-2" />
-          Subscription
-        </TabsTrigger>
-        <TabsTrigger value="family" disabled={!isFamilyPlan}>
-          <Users className="h-4 w-4 mr-2" />
-          Family Group
-        </TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="subscription">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Subscription Details
-            </CardTitle>
-            <CardDescription>Manage your subscription and billing</CardDescription>
+    <div className="w-full space-y-6">
+      <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Subscription Details
+              </CardTitle>
+              <CardDescription>Manage your subscription and billing</CardDescription>
+            </div>
+            {isTrial && (
+              <Button
+                onClick={() => navigate('/pricing')}
+                className="trial-cta text-white rounded-md h-10 px-4 shrink-0"
+              >
+                Update
+              </Button>
+            )}
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -210,37 +210,57 @@ const SubscriptionManager: React.FC = () => {
                     <Zap className="h-4 w-4" />
                     Active days
                   </span>
-                  {showTrialDays && (
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      {trialDaysRemaining != null && (
-                        <div>
-                          <span className="text-muted-foreground">Trial days left</span>
-                          <p className="font-semibold">{trialDaysRemaining} days</p>
+                  {showTrialDays && trialDaysUsed != null && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Trial progress</span>
+                          <span className="font-medium">{trialDaysUsed} of 7 days</span>
                         </div>
-                      )}
-                      {trialDaysUsed != null && (
+                        <Progress value={Math.min(100, (trialDaysUsed / 7) * 100)} variant="warning" className="h-2.5" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {trialDaysRemaining != null && (
+                          <div>
+                            <span className="text-muted-foreground">Trial days left</span>
+                            <p className="font-semibold">{trialDaysRemaining} days</p>
+                          </div>
+                        )}
                         <div>
                           <span className="text-muted-foreground">Trial days used</span>
                           <p className="font-semibold">{trialDaysUsed} days</p>
                         </div>
-                      )}
-                    </div>
-                  )}
-                  {showSubscribedDays && (
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Subscribed days this period</span>
-                        <p className="font-semibold">{subscribedDaysInPeriod} of {periodLengthDays} days</p>
                       </div>
-                      {periodStart != null && periodEnd != null && (
-                        <div>
-                          <span className="text-muted-foreground">Period</span>
-                          <p className="font-medium">
-                            {formatDate(periodStart)} – {formatDate(periodEnd)}
-                          </p>
+                    </>
+                  )}
+                  {showSubscribedDays && subscribedDaysInPeriod != null && periodLengthDays != null && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Period progress</span>
+                          <span className="font-medium">{subscribedDaysInPeriod} of {periodLengthDays} days</span>
                         </div>
-                      )}
-                    </div>
+                        <Progress
+                          value={periodLengthDays > 0 ? Math.min(100, (subscribedDaysInPeriod / periodLengthDays) * 100) : 0}
+                          variant="default"
+                          className="h-2.5"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Subscribed days this period</span>
+                          <p className="font-semibold">{subscribedDaysInPeriod} of {periodLengthDays} days</p>
+                        </div>
+                        {periodStart != null && periodEnd != null && (
+                          <div>
+                            <span className="text-muted-foreground">Period</span>
+                            <p className="font-medium">
+                              {formatDate(periodStart)} – {formatDate(periodEnd)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </>
@@ -268,12 +288,23 @@ const SubscriptionManager: React.FC = () => {
 
             <Separator />
 
-            <div className="space-y-2">
-              <span className="text-sm text-gray-600">Billing Period</span>
-              <p className="text-sm">
-                {formatDate(subscription.current_period_start)} - {formatDate(subscription.current_period_end)}
-              </p>
-            </div>
+            {(() => {
+              // Use trial start when current_period_start is missing/zero (common for trial-only subscriptions)
+              const periodStart = subscription.current_period_start > 0
+                ? subscription.current_period_start
+                : (subscription.trial_start ?? 0);
+              const periodEnd = subscription.current_period_end ?? 0;
+              const hasValidPeriod = periodEnd > 0 && periodStart > 0;
+              if (!hasValidPeriod) return null;
+              return (
+                <div className="space-y-2">
+                  <span className="text-sm text-gray-600">Billing Period</span>
+                  <p className="text-sm">
+                    {formatDate(periodStart)} - {formatDate(periodEnd)}
+                  </p>
+                </div>
+              );
+            })()}
 
             {subscription.status === 'active' && (
               <div className="pt-4">
@@ -289,12 +320,9 @@ const SubscriptionManager: React.FC = () => {
             )}
           </CardContent>
         </Card>
-      </TabsContent>
 
-      <TabsContent value="family">
-        <FamilyGroupManager />
-      </TabsContent>
-    </Tabs>
+      {isFamilyPlan && <FamilyGroupManager />}
+    </div>
   );
 
 };
