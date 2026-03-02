@@ -6,19 +6,20 @@ interface TrialTimelineChartProps {
     date: string;
     started: number;
     converted: number;
+    inviteActivated?: number;
   }>;
 }
 
 export function TrialTimelineChart({ data }: TrialTimelineChartProps) {
-  const formattedData = data.map(item => ({
+  const formattedData = data.map((item) => ({
     ...item,
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
   }));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trial Activity Timeline (Last 30 Days)</CardTitle>
+        <CardTitle>Activity Timeline (Last 30 Days)</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -30,6 +31,7 @@ export function TrialTimelineChart({ data }: TrialTimelineChartProps) {
             <Legend />
             <Line type="monotone" dataKey="started" stroke="#3b82f6" name="Trials Started" strokeWidth={2} />
             <Line type="monotone" dataKey="converted" stroke="#10b981" name="Converted" strokeWidth={2} />
+            <Line type="monotone" dataKey="inviteActivated" stroke="#8b5cf6" name="Lifetime (invite)" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

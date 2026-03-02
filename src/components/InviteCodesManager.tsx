@@ -195,175 +195,239 @@ export function InviteCodesManager() {
     );
   }
 
+  const formatCreated = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  const formatCreatedFull = (dateStr: string) =>
+    new Date(dateStr).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  const limitLabel = (row: InviteCodeRow) =>
+    row.uses_remaining != null ? `${row.used_count} / ${row.uses_remaining}` : `${row.used_count} used`;
+  const isExhausted = (row: InviteCodeRow) =>
+    row.uses_remaining != null && row.used_count >= row.uses_remaining;
+
   return (
-    <Card className="overflow-hidden shadow-sm border-0 bg-card/50 backdrop-blur-sm">
-      <CardHeader className="space-y-1 pb-4 md:pb-6">
-        <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-            <Gift className="h-5 w-5 text-primary" />
-          </span>
-          Invite codes
-        </CardTitle>
-        <CardDescription className="text-sm md:text-base">
-          Single-use codes grant lifetime access. Generate random 10-digit codes or create a custom code.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 md:space-y-8">
-        {/* Generate codes */}
-        <div className="rounded-xl border bg-muted/30 p-4 md:p-5 space-y-3">
-          <h4 className="text-sm font-semibold text-foreground">Generate codes</h4>
-          <p className="text-xs text-muted-foreground">Random 10-digit codes; no duplicates.</p>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div className="space-y-1.5 flex-1 sm:max-w-[140px]">
-              <label className="text-sm font-medium">Number</label>
-              <Input
-                type="number"
-                min={1}
-                max={100}
-                value={generateCount}
-                onChange={(e) => setGenerateCount(e.target.value)}
-                className="h-10"
-              />
+    <div className="w-full space-y-6 md:space-y-8">
+      <Card className="overflow-hidden shadow-sm border bg-card w-full">
+        <CardHeader className="space-y-1.5 pb-4 px-4 sm:px-6 md:pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Gift className="h-5 w-5 text-primary" />
+                </span>
+                Invite codes
+              </CardTitle>
+              <CardDescription className="mt-1.5 text-sm text-muted-foreground max-w-xl">
+                Codes grant lifetime premium access. Generate random 10-digit codes or create a custom code (min 4 characters). Each use redeems one slot.
+              </CardDescription>
             </div>
             <Button
-              type="button"
-              variant="default"
-              onClick={handleGenerate}
-              disabled={generateLoading}
-              className="h-10 shrink-0"
+              variant="outline"
+              size="sm"
+              onClick={fetchCodes}
+              className="shrink-0 gap-2 h-9"
+              aria-label="Refresh list"
             >
-              {generateLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Generate
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
           </div>
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-6 md:space-y-8 px-4 sm:px-6 pb-6">
+          {/* Generate codes */}
+          <section className="rounded-xl border bg-muted/30 p-4 sm:p-5 space-y-3" aria-labelledby="generate-heading">
+            <h2 id="generate-heading" className="text-sm font-semibold text-foreground">Generate codes</h2>
+            <p className="text-xs text-muted-foreground">Random 10-digit numeric codes; no duplicates.</p>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-sm">
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <label htmlFor="generate-count" className="text-sm font-medium">Number</label>
+                <Input
+                  id="generate-count"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={generateCount}
+                  onChange={(e) => setGenerateCount(e.target.value)}
+                  className="h-10"
+                  aria-describedby="generate-desc"
+                />
+                <span id="generate-desc" className="sr-only">Between 1 and 100</span>
+              </div>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleGenerate}
+                disabled={generateLoading}
+                className="h-10 shrink-0 min-h-[2.5rem]"
+              >
+                {generateLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                Generate
+              </Button>
+            </div>
+          </section>
 
-        {/* Custom code */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-foreground">Custom code (optional)</h4>
-          <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="space-y-1.5 flex-1 min-w-0 sm:max-w-[180px]">
-              <label className="text-sm font-medium">Code</label>
-              <Input
-                placeholder="e.g. INFLUENCER1"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                className="uppercase h-10"
-              />
-            </div>
-            <div className="space-y-1.5 flex-1 min-w-0 sm:max-w-[160px]">
-              <label className="text-sm font-medium">Label (optional)</label>
-              <Input
-                placeholder="e.g. Jane Doe"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                className="h-10"
-              />
-            </div>
-            <div className="space-y-1.5 w-28">
-              <label className="text-sm font-medium">Max uses</label>
-              <Input
-                type="number"
-                min={1}
-                placeholder="∞"
-                value={newUsesRemaining}
-                onChange={(e) => setNewUsesRemaining(e.target.value)}
-                className="h-10"
-              />
-            </div>
-            <Button type="submit" disabled={createLoading || newCode.trim().length < 4} className="h-10 shrink-0">
-              {createLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Create
-            </Button>
-          </form>
-        </div>
+          {/* Custom code */}
+          <section className="space-y-3" aria-labelledby="custom-heading">
+            <h2 id="custom-heading" className="text-sm font-semibold text-foreground">Custom code (optional)</h2>
+            <form onSubmit={handleCreate} className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="space-y-1.5 flex-1 min-w-0 w-full sm:max-w-[200px]">
+                <label htmlFor="custom-code" className="text-sm font-medium">Code</label>
+                <Input
+                  id="custom-code"
+                  placeholder="e.g. INFLUENCER1"
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                  className="uppercase h-10 min-h-[2.5rem]"
+                  minLength={4}
+                />
+              </div>
+              <div className="space-y-1.5 flex-1 min-w-0 w-full sm:max-w-[180px]">
+                <label htmlFor="custom-label" className="text-sm font-medium">Label (optional)</label>
+                <Input
+                  id="custom-label"
+                  placeholder="e.g. Jane Doe"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  className="h-10 min-h-[2.5rem]"
+                />
+              </div>
+              <div className="space-y-1.5 w-full sm:w-28">
+                <label htmlFor="custom-uses" className="text-sm font-medium">Max uses</label>
+                <Input
+                  id="custom-uses"
+                  type="number"
+                  min={1}
+                  placeholder="∞"
+                  value={newUsesRemaining}
+                  onChange={(e) => setNewUsesRemaining(e.target.value)}
+                  className="h-10 min-h-[2.5rem]"
+                />
+                <p className="text-xs text-muted-foreground">Leave empty for single use</p>
+              </div>
+              <Button
+                type="submit"
+                disabled={createLoading || newCode.trim().length < 4}
+                className="h-10 min-h-[2.5rem] shrink-0 w-full sm:w-auto"
+              >
+                {createLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                Create
+              </Button>
+            </form>
+          </section>
 
-        {/* Existing codes */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-foreground">Existing codes</h4>
-            {codes.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {codes.length} total
-              </Badge>
-            )}
-          </div>
-          {codes.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center rounded-lg border border-dashed">
-              No invite codes yet. Generate or create one above.
-            </p>
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden md:block rounded-lg border overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted/50 border-b">
-                      <th className="text-left p-3 font-medium">Code</th>
-                      <th className="text-left p-3 font-medium">Label</th>
-                      <th className="text-left p-3 font-medium">Used</th>
-                      <th className="text-left p-3 font-medium">Limit</th>
-                      <th className="text-left p-3 font-medium">Created</th>
-                      <th className="w-12 p-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {codes.map((row) => (
-                      <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 font-mono font-medium">{row.code}</td>
-                        <td className="p-3 text-muted-foreground">{row.label || '—'}</td>
-                        <td className="p-3">{row.used_count}</td>
-                        <td className="p-3 text-muted-foreground">{row.uses_remaining ?? '∞'}</td>
-                        <td className="p-3 text-muted-foreground">
-                          {new Date(row.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="p-3">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => copyCode(row.code)}
-                            title="Copy code"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </td>
+          {/* Existing codes */}
+          <section className="space-y-3" aria-labelledby="existing-heading">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h2 id="existing-heading" className="text-sm font-semibold text-foreground">Existing codes</h2>
+              {codes.length > 0 && (
+                <Badge variant="secondary" className="text-xs w-fit">
+                  {codes.length} total
+                </Badge>
+              )}
+            </div>
+            {codes.length === 0 ? (
+              <div className="text-center py-8 px-4 rounded-lg border border-dashed bg-muted/20">
+                <p className="text-sm text-muted-foreground">No invite codes yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Generate a batch above or create a custom code.</p>
+              </div>
+            ) : (
+              <>
+                {/* Desktop: scrollable table */}
+                <div className="hidden md:block rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm min-w-[520px]">
+                    <thead>
+                      <tr className="bg-muted/50 border-b">
+                        <th className="text-left p-3 font-medium">Code</th>
+                        <th className="text-left p-3 font-medium">Label</th>
+                        <th className="text-left p-3 font-medium">Used / Limit</th>
+                        <th className="text-left p-3 font-medium">Created</th>
+                        <th className="w-14 p-3 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Mobile cards */}
-              <div className="md:hidden space-y-3">
-                {codes.map((row) => (
-                  <div
-                    key={row.id}
-                    className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-mono font-semibold text-base break-all">{row.code}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => copyCode(row.code)}
-                        title="Copy"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                    </thead>
+                    <tbody>
+                      {codes.map((row) => (
+                        <tr
+                          key={row.id}
+                          className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${isExhausted(row) ? 'opacity-70' : ''}`}
+                        >
+                          <td className="p-3 font-mono font-medium align-middle">{row.code}</td>
+                          <td className="p-3 text-muted-foreground align-middle">{row.label || '—'}</td>
+                          <td className="p-3 align-middle">
+                            <span className={isExhausted(row) ? 'text-muted-foreground' : ''}>
+                              {limitLabel(row)}
+                            </span>
+                            {row.uses_remaining != null && row.used_count >= row.uses_remaining && (
+                              <Badge variant="outline" className="ml-1.5 text-xs">Used up</Badge>
+                            )}
+                          </td>
+                          <td className="p-3 text-muted-foreground align-middle" title={formatCreatedFull(row.created_at)}>
+                            {formatCreated(row.created_at)}
+                          </td>
+                          <td className="p-3 text-right align-middle">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 shrink-0"
+                              onClick={() => copyCode(row.code)}
+                              title="Copy code"
+                              aria-label={`Copy ${row.code}`}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile: cards */}
+                <div className="md:hidden space-y-3">
+                  {codes.map((row) => (
+                    <div
+                      key={row.id}
+                      className={`rounded-lg border bg-card p-4 shadow-sm ${isExhausted(row) ? 'opacity-75' : ''}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono font-semibold text-base break-all">{row.code}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 min-h-[2.25rem] shrink-0 gap-1.5"
+                          onClick={() => copyCode(row.code)}
+                          aria-label={`Copy ${row.code}`}
+                        >
+                          <Copy className="h-4 w-4" />
+                          Copy
+                        </Button>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-1 gap-1.5 text-sm">
+                        {row.label && (
+                          <div>
+                            <dt className="text-muted-foreground">Label</dt>
+                            <dd className="font-medium">{row.label}</dd>
+                          </div>
+                        )}
+                        <div>
+                          <dt className="text-muted-foreground">Used / Limit</dt>
+                          <dd className="font-medium">
+                            {limitLabel(row)}
+                            {isExhausted(row) && (
+                              <Badge variant="outline" className="ml-2 text-xs">Used up</Badge>
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Created</dt>
+                          <dd className="font-medium">{formatCreated(row.created_at)}</dd>
+                        </div>
+                      </dl>
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span>{row.label || 'No label'}</span>
-                      <span>Used: {row.used_count} / {row.uses_remaining ?? '∞'}</span>
-                      <span>{new Date(row.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

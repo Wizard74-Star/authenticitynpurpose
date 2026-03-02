@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { TrialAnalyticsDashboard } from "@/components/TrialAnalyticsDashboard";
 import { InviteCodesManager } from "@/components/InviteCodesManager";
+import { AdminUserManagement } from "@/components/AdminUserManagement";
 import { AdminLoginCard } from "@/components/auth/AdminLoginCard";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
   ShieldAlert,
   LayoutDashboard,
   Gift,
+  Users,
   Menu,
   LogOut,
 } from "lucide-react";
@@ -21,8 +23,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import logoImg from "@/assets/images/Logo.png";
 
-type AdminSection = "analytics" | "invite-codes";
+type AdminSection = "analytics" | "invite-codes" | "users";
 
 export default function Admin() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -101,6 +104,7 @@ export default function Admin() {
   const navItems: { id: AdminSection; label: string; icon: React.ReactNode }[] = [
     { id: "analytics", label: "Analytics", icon: <LayoutDashboard className="h-4 w-4" /> },
     { id: "invite-codes", label: "Invite codes", icon: <Gift className="h-4 w-4" /> },
+    { id: "users", label: "User management", icon: <Users className="h-4 w-4" /> },
   ];
 
   return (
@@ -147,7 +151,15 @@ export default function Admin() {
               <span className="hidden sm:inline">Back</span>
             </Button>
             <span className="text-muted-foreground hidden sm:inline">·</span>
-            <h1 className="font-semibold text-sm md:text-base truncate">Admin</h1>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 min-w-0"
+              aria-label="Home"
+            >
+              <img src={logoImg} alt="" className="h-7 w-auto shrink-0" />
+              <h1 className="font-semibold text-sm md:text-base truncate">Admin</h1>
+            </button>
           </div>
 
           {/* Desktop nav */}
@@ -191,8 +203,13 @@ export default function Admin() {
           </section>
         )}
         {section === "invite-codes" && (
-          <section id="invite-codes" className="animate-in fade-in duration-200 max-w-4xl">
+          <section id="invite-codes" className="animate-in fade-in duration-200 w-full">
             <InviteCodesManager />
+          </section>
+        )}
+        {section === "users" && (
+          <section id="users" className="animate-in fade-in duration-200 w-full">
+            <AdminUserManagement />
           </section>
         )}
       </main>

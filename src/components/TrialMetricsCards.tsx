@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { TrendingUp, Users, CheckCircle, Clock, AlertCircle, CreditCard, Gift } from "lucide-react";
 
 interface MetricsCardsProps {
   metrics: {
@@ -10,6 +10,8 @@ interface MetricsCardsProps {
     conversionRate: number;
     avgTimeToConversion: number;
     canceledTrials: number;
+    paidSubscribers?: number;
+    invitePremium?: number;
   };
 }
 
@@ -32,6 +34,18 @@ export function TrialMetricsCards({ metrics }: MetricsCardsProps) {
       value: metrics.convertedTrials,
       icon: CheckCircle,
       color: "text-emerald-600"
+    },
+    {
+      title: "Paid Subscribers",
+      value: metrics.paidSubscribers ?? 0,
+      icon: CreditCard,
+      color: "text-emerald-700"
+    },
+    {
+      title: "Premium (invite code)",
+      value: metrics.invitePremium ?? 0,
+      icon: Gift,
+      color: "text-violet-600"
     },
     {
       title: "Conversion Rate",
