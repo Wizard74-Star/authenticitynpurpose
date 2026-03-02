@@ -31,6 +31,7 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Progress = lazy(() => import("./pages/Progress"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const JournalPage = lazy(() => import("./pages/JournalPage"));
 const Goals = lazy(() => import("./pages/Goals"));
 const Admin = lazy(() => import("./pages/Admin"));
 const InviteCodes = lazy(() => import("./pages/InviteCodes"));
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
               <Route path="/goals" element={<ProtectedRoute><AuthenticatedLayout><Goals /></AuthenticatedLayout></ProtectedRoute>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/invite-codes" element={<ProtectedRoute><InviteCodes /></ProtectedRoute>} />

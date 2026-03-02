@@ -34,6 +34,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  Pencil,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +65,8 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { GratitudeJournalSections } from '@/components/GratitudeJournalSections';
+import { JournalEntryForm } from '@/components/JournalEntryForm';
+import { BudgetSpentEditDialog } from '@/components/BudgetSpentEditDialog';
 import type { DemoGoalGenerated } from '@/data/demoOnboardingMockData';
 import { getDefaultImageForCategory } from '@/data/demoOnboardingMockData';
 import { generateGoalsWithOpenAI, recommendImagesForGoals, generateTodosWithOpenAI, getActiveProvider } from '@/lib/openaiProgressAnalysis';
@@ -104,17 +107,28 @@ export default function Dashboard() {
   const [editingEvent, setEditingEvent] = useState<CalendarEventData | undefined>();
   const [gratitudeDialogOpen, setGratitudeDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
+  const [budgetEditGoal, setBudgetEditGoal] = useState<ManifestationGoal | null>(null);
   const [slotClickTime, setSlotClickTime] = useState<string | undefined>();
   const [overviewNewTaskTitle, setOverviewNewTaskTitle] = useState('');
   const [overviewNewGratitude, setOverviewNewGratitude] = useState('');
   const [activeHomeSection, setActiveHomeSection] = useState<string>('goals');
+  const tabsScrollRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const homeSectionIds = ['goals', 'to-do', 'calendar', 'progress', 'gratitude'] as const;
+  const homeSectionIds = ['goals', 'to-do', 'calendar', 'progress', 'gratitude', 'journal'] as const;
   const scrollToHomeSection = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setActiveHomeSection(id);
   }, []);
+
+  // On mobile: keep active tab visible by scrolling the tab bar when section changes (e.g. from scroll)
+  useEffect(() => {
+    const activeEl = document.getElementById(`tab-${activeHomeSection}`);
+    const container = tabsScrollRef.current;
+    if (activeEl && container) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  }, [activeHomeSection]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -631,16 +645,26 @@ export default function Dashboard() {
       {/* Main content: Goals, To Do List, Calendar, Progress, Gratitude — click tab to go to section */}
       <section id="dashboard-content" className="py-6 sm:py-12 px-3 sm:px-6 border-t" style={{ backgroundColor: 'var(--landing-bg)', borderColor: 'var(--landing-border)' }}>
         <div className="sticky top-14 sm:top-16 z-30 mb-6 sm:mb-10 -mx-3 sm:mx-0 px-2 sm:px-0">
-          <div className="rounded-lg sm:rounded-xl border-2 p-2 flex gap-2 justify-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}>
-            {(['Goals', 'To Do List', 'Calendar', 'Progress', 'Gratitude'] as const).map((label, i) => {
+          <div
+            ref={tabsScrollRef}
+            className="rounded-lg sm:rounded-xl border-2 p-2 flex gap-2 justify-start sm:justify-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth min-w-0 w-full [scrollbar-width:thin] [scrollbar-color:var(--landing-border)_transparent] sm:[&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[var(--landing-border)]"
+            style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}
+            role="tablist"
+            aria-label="Dashboard sections"
+          >
+            {(['Goals', 'To Do List', 'Calendar', 'Progress', 'Gratitude', 'Journal'] as const).map((label, i) => {
               const id = homeSectionIds[i];
               const isActive = activeHomeSection === id;
               return (
                 <button
                   key={id}
                   type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={id}
+                  id={`tab-${id}`}
                   onClick={() => scrollToHomeSection(id)}
-                  className={`shrink-0 snap-start px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-h-[2.5rem] touch-manipulation ${isActive ? 'shadow-md' : 'opacity-90 hover:opacity-100'}`}
+                  className={`shrink-0 snap-start px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-h-[2.5rem] touch-manipulation first:ml-0 last:mr-0 ${isActive ? 'shadow-md' : 'opacity-90 hover:opacity-100'}`}
                   style={isActive ? { backgroundColor: 'var(--landing-primary)', color: 'white' } : { color: 'var(--landing-text)' }}
                 >
                   {label}
@@ -728,7 +752,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       {(goal.budget != null && goal.budget > 0) && (
-                        <div className="flex flex-wrap gap-4 mb-3 text-sm" style={{ color: 'var(--landing-text)' }}>
+                        <div className="flex flex-wrap items-center gap-4 mb-3 text-sm" style={{ color: 'var(--landing-text)' }}>
                           <div className="flex items-center gap-2">
                             <DollarSign className="h-4 w-4" style={{ color: 'var(--landing-primary)' }} />
                             <span><strong>Budget:</strong> {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goal.budget)}</span>
@@ -737,6 +761,9 @@ export default function Dashboard() {
                             <DollarSign className="h-4 w-4" style={{ color: 'var(--landing-primary)' }} />
                             <span><strong>Spent:</strong> {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goal.spent ?? 0)}</span>
                           </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => { e.stopPropagation(); setBudgetEditGoal(goal); }} title="Edit budget and spent">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </div>
                       )}
                       <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
@@ -1059,6 +1086,64 @@ export default function Dashboard() {
               useLandingStyles
             />
           </section>
+
+          {/* Journal — life journal (separate from gratitude) */}
+          <section id="journal" className="scroll-mt-24 sm:scroll-mt-28">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 shrink-0" style={{ color: 'var(--landing-primary)' }} />
+                <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--landing-text)' }}>Journal</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="rounded-xl min-h-9 touch-manipulation" onClick={() => navigate('/journal')}>
+                  Open Journal
+                </Button>
+                <Button
+                  className="rounded-xl min-h-9 touch-manipulation hero-cta-primary"
+                  onClick={() => setJournalDialogOpen(true)}
+                >
+                  <PenLine className="h-4 w-4 mr-2" />
+                  {journalForDate ? 'Edit today\'s entry' : 'Write today\'s entry'}
+                </Button>
+              </div>
+            </div>
+            {journalForDate ? (
+              <Card className="p-4 sm:p-6 rounded-lg sm:rounded-xl border" style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}>
+                <p className="text-sm font-medium mb-1" style={{ color: 'var(--landing-text)', opacity: 0.8 }}>
+                  {new Date(todayIso + 'T12:00:00').toLocaleDateString('en-US')}
+                </p>
+                {journalForDate.title && (
+                  <h3 className="font-semibold mb-2" style={{ color: 'var(--landing-text)' }}>{journalForDate.title}</h3>
+                )}
+                <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--landing-text)' }}>
+                  {journalForDate.content.length > 280 ? journalForDate.content.slice(0, 280) + '…' : journalForDate.content}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3 text-sm"
+                  style={{ color: 'var(--landing-primary)' }}
+                  onClick={() => navigate('/journal')}
+                >
+                  View all entries →
+                </Button>
+              </Card>
+            ) : (
+              <Card className="p-6 sm:p-8 rounded-lg sm:rounded-xl border text-center" style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}>
+                <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-60" style={{ color: 'var(--landing-primary)' }} />
+                <p className="text-sm mb-4" style={{ color: 'var(--landing-text)', opacity: 0.9 }}>
+                  Capture your day and reflect. Your journal is separate from gratitude—use it for thoughts, experiences, or anything you want to remember.
+                </p>
+                <Button
+                  className="rounded-xl hero-cta-primary"
+                  onClick={() => setJournalDialogOpen(true)}
+                >
+                  <PenLine className="h-4 w-4 mr-2" />
+                  Write today&apos;s entry
+                </Button>
+              </Card>
+            )}
+          </section>
         </div>
       </section>
 
@@ -1133,6 +1218,39 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <JournalDialog
+        open={journalDialogOpen}
+        onOpenChange={setJournalDialogOpen}
+        selectedIso={todayIso}
+        existing={journalForDate}
+        onSave={async (entry) => {
+          if (journalForDate) {
+            await updateJournalEntry(journalForDate.id, { date: entry.date, title: entry.title, content: entry.content, mood: entry.mood, imageUrl: entry.imageUrl });
+            toast({ title: 'Saved', description: 'Journal entry updated.' });
+          } else {
+            await addJournalEntry({ date: entry.date, title: entry.title, content: entry.content, mood: entry.mood, imageUrl: entry.imageUrl });
+            toast({ title: 'Saved', description: 'Journal entry added.' });
+          }
+          setJournalDialogOpen(false);
+        }}
+        onDelete={journalForDate ? async () => {
+          await deleteJournalEntry(journalForDate.id);
+          toast({ title: 'Removed', description: 'Journal entry removed.' });
+          setJournalDialogOpen(false);
+        } : undefined}
+      />
+
+      <BudgetSpentEditDialog
+        goal={budgetEditGoal}
+        onClose={() => setBudgetEditGoal(null)}
+        onSave={async (budget, spent) => {
+          if (!budgetEditGoal) return;
+          await updateGoal(budgetEditGoal.id, { budget, spent });
+          toast({ title: 'Saved', description: 'Budget and spent updated.' });
+          setBudgetEditGoal(null);
+        }}
+      />
       </div>
     </div>
   );
@@ -1438,71 +1556,38 @@ function JournalDialog({
   onOpenChange: (open: boolean) => void;
   selectedIso: string;
   existing: ManifestationJournalEntry | undefined;
-  onSave: (entry: { title: string; content: string; mood: 'great' | 'good' | 'okay' | 'tough'; imageUrl?: string }) => void | Promise<void>;
+  onSave: (entry: { date: string; title: string; content: string; mood: 'great' | 'good' | 'okay' | 'tough'; imageUrl?: string }) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
 }) {
-  const [title, setTitle] = useState(existing?.title ?? '');
-  const [content, setContent] = useState(existing?.content ?? '');
-  const [mood, setMood] = useState<'great' | 'good' | 'okay' | 'tough'>(existing?.mood ?? 'good');
-
-  React.useEffect(() => {
-    if (open) {
-      setTitle(existing?.title ?? '');
-      setContent(existing?.content ?? '');
-      setMood(existing?.mood ?? 'good');
-    }
-  }, [open, existing]);
-
-  const handleSave = () => {
-    if (!content.trim()) return;
-    onSave({ title: title.trim(), content: content.trim(), mood });
-  };
+  const initialValues = React.useMemo(
+    () => ({
+      date: existing?.date ?? selectedIso,
+      title: existing?.title ?? '',
+      content: existing?.content ?? '',
+      mood: (existing?.mood ?? 'good') as 'great' | 'good' | 'okay' | 'tough',
+    }),
+    [existing, selectedIso, open]
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl border-2 max-w-md" style={{ borderColor: 'var(--landing-border)' }}>
         <DialogHeader>
           <DialogTitle style={{ color: 'var(--landing-text)' }}>
-            Journal for {new Date(selectedIso + 'T12:00:00').toLocaleDateString('en-US')}
+            {existing ? 'Edit Journal Entry' : 'New Journal Entry'}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
-          <Input
-            placeholder="Title (optional)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="rounded-xl border-[var(--landing-border)]"
+        <div className="pt-2">
+          <JournalEntryForm
+            initialValues={initialValues}
+            onSave={(values) => onSave({ ...values, imageUrl: undefined })}
+            onCancel={() => onOpenChange(false)}
+            onDelete={onDelete}
+            showDelete={!!existing && !!onDelete}
+            isEdit={!!existing}
+            variant="dialog"
+            lockDateToToday
           />
-          <Textarea
-            placeholder="Write your thoughts..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={5}
-            className="rounded-xl border-[var(--landing-border)]"
-          />
-          <div className="flex flex-wrap gap-2">
-            {(['great', 'good', 'okay', 'tough'] as const).map((m) => (
-              <Button
-                key={m}
-                variant={mood === m ? 'default' : 'outline'}
-                size="sm"
-                className="rounded-xl capitalize"
-                onClick={() => setMood(m)}
-              >
-                {m}
-              </Button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            {onDelete && (
-              <Button variant="outline" className="rounded-xl text-red-600 border-red-200" onClick={onDelete}>
-                Remove
-              </Button>
-            )}
-            <Button className="rounded-xl ml-auto" onClick={handleSave} disabled={!content.trim()}>
-              Save
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -216,7 +216,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
                     Get Started
                   </Button>
                 }
-                defaultMode="signup"
+                defaultMode="login"
               />
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>

@@ -45,25 +45,36 @@ const Progress: React.FC = () => {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const metrics = useMemo(() => {
-    const completedEvents = events.filter((e) => e.status === 'completed');
-    const plannedEvents = events.filter((e) => e.status === 'planned');
-    const missedEvents = events.filter((e) => e.status === 'missed');
+    const ev = Array.isArray(events) ? events : [];
+    const completedEvents = ev.filter((e) => e?.status === 'completed');
+    const plannedEvents = ev.filter((e) => e?.status === 'planned');
+    const missedEvents = ev.filter((e) => e?.status === 'missed');
     const totalEvents = completedEvents.length + plannedEvents.length + missedEvents.length;
     const completionRate = totalEvents > 0 ? Math.round((completedEvents.length / totalEvents) * 100) : 0;
 
-    const recentEvents = events.filter((e) => new Date(e.startTime) >= sevenDaysAgo);
+    const recentEvents = ev.filter((e) => {
+      try {
+        return e?.startTime != null && new Date(e.startTime) >= sevenDaysAgo;
+      } catch {
+        return false;
+      }
+    });
     const completedRecent = recentEvents.filter((e) => e.status === 'completed');
     const weeklyConsistency = recentEvents.length > 0 ? Math.round((completedRecent.length / recentEvents.length) * 100) : 0;
 
-    const journalThisMonth = journalEntries.filter((j) => j.date >= toISODate(thirtyDaysAgo)).length;
-    const gratitudeThisMonth = gratitudeEntries.filter((g) => g.date >= toISODate(thirtyDaysAgo)).length;
+    const journals = Array.isArray(journalEntries) ? journalEntries : [];
+    const gratitudes = Array.isArray(gratitudeEntries) ? gratitudeEntries : [];
+    const journalThisMonth = journals.filter((j) => j?.date >= toISODate(thirtyDaysAgo)).length;
+    const gratitudeThisMonth = gratitudes.filter((g) => g?.date >= toISODate(thirtyDaysAgo)).length;
 
-    const todosCompleted = todos.filter((t) => t.completed).length;
-    const totalTodos = todos.length;
+    const todoList = Array.isArray(todos) ? todos : [];
+    const todosCompleted = todoList.filter((t) => t?.completed).length;
+    const totalTodos = todoList.length;
     const todoCompletionRate = totalTodos > 0 ? Math.round((todosCompleted / totalTodos) * 100) : 0;
 
-    const avgGoalProgress = goals.length > 0
-      ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / goals.length * 10)
+    const goalsList = Array.isArray(goals) ? goals : [];
+    const avgGoalProgress = goalsList.length > 0
+      ? Math.round(goalsList.reduce((s, g) => s + (g?.progress ?? 0), 0) / goalsList.length * 10)
       : 0;
 
     return {
@@ -75,30 +86,55 @@ const Progress: React.FC = () => {
       avgGoalProgress,
       completedEvents: completedEvents.length,
       totalEvents,
-      streak,
-      totalPoints,
+      streak: Number(streak) || 0,
+      totalPoints: Number(totalPoints) || 0,
     };
   }, [events, goals, todos, journalEntries, gratitudeEntries, streak, totalPoints]);
 
   const chartData = useMemo(() => {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days.map((day, i) => {
-      const dayEvents = events.filter((e) => new Date(e.startTime).getDay() === i && new Date(e.startTime) >= sevenDaysAgo);
-      const completed = dayEvents.filter((e) => e.status === 'completed').length;
-      const total = dayEvents.length;
-      return {
-        day,
-        completed,
-        total,
-        rate: total > 0 ? Math.round((completed / total) * 100) : 0,
-      };
-    });
-  }, [events]);
+    const result: { day: string; date: string; count: number; rate: number }[] = [];
+    const now = new Date();
+    const eventsList = Array.isArray(events) ? events : [];
+    const todosList = Array.isArray(todos) ? todos : [];
+    const journalList = Array.isArray(journalEntries) ? journalEntries : [];
+    const gratitudeList = Array.isArray(gratitudeEntries) ? gratitudeEntries : [];
+    for (let d = 6; d >= 0; d--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - d);
+      const iso = toISODate(date);
+      const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+      const todosDone = todosList.filter((t) => t.completed && t.completedAt && String(t.completedAt).startsWith(iso)).length;
+      const journalCount = journalList.some((j) => j.date === iso) ? 1 : 0;
+      const gratitudeCount = gratitudeList.some((g) => g.date === iso) ? 1 : 0;
+      const eventsDone = eventsList.filter((e) => {
+        try {
+          const t = e?.startTime != null ? new Date(e.startTime) : null;
+          return t && !Number.isNaN(t.getTime()) && t.toISOString().startsWith(iso) && e.status === 'completed';
+        } catch {
+          return false;
+        }
+      }).length;
+      const count = todosDone + journalCount + gratitudeCount + eventsDone;
+      const eventsThatDay = eventsList.filter((e) => {
+        try {
+          const t = e?.startTime != null ? new Date(e.startTime) : null;
+          return t && !Number.isNaN(t.getTime()) && t.toISOString().startsWith(iso);
+        } catch {
+          return false;
+        }
+      }).length;
+      const totalPossible = todosList.filter((t) => t.scheduledDate === iso).length + 1 + 1 + eventsThatDay;
+      const rate = totalPossible > 0 ? Math.round((count / totalPossible) * 100) : (count > 0 ? 100 : 0);
+      result.push({ day: dayLabel, date: iso, count, rate });
+    }
+    return result;
+  }, [events, todos, journalEntries, gratitudeEntries]);
 
   const pieData = useMemo(() => {
-    const completed = events.filter((e) => e.status === 'completed').length;
-    const planned = events.filter((e) => e.status === 'planned').length;
-    const missed = events.filter((e) => e.status === 'missed').length;
+    const ev = Array.isArray(events) ? events : [];
+    const completed = ev.filter((e) => e?.status === 'completed').length;
+    const planned = ev.filter((e) => e?.status === 'planned').length;
+    const missed = ev.filter((e) => e?.status === 'missed').length;
     const data = [
       { name: 'Completed', value: completed, color: '#2c9d73' },
       { name: 'Planned', value: planned, color: '#3b82f6' },
@@ -109,21 +145,21 @@ const Progress: React.FC = () => {
 
   const handleGetAIInsights = useCallback(async () => {
     const input = {
-      goals: goals.map((g) => ({
-        title: g.title,
-        progress: g.progress,
-        timeline: g.timeline,
-        description: g.description,
+      goals: (Array.isArray(goals) ? goals : []).map((g) => ({
+        title: g?.title ?? '',
+        progress: g?.progress ?? 0,
+        timeline: g?.timeline ?? '30',
+        description: g?.description ?? '',
       })),
-      events: events.map((e) => ({
-        title: e.title,
-        status: e.status,
-        startTime: e.startTime.toISOString(),
+      events: (Array.isArray(events) ? events : []).map((e) => ({
+        title: e?.title ?? '',
+        status: e?.status ?? 'planned',
+        startTime: e?.startTime != null ? new Date(e.startTime).toISOString() : new Date().toISOString(),
       })),
-      todos: todos.map((t) => ({
-        title: t.title,
-        completed: t.completed,
-        scheduledDate: t.scheduledDate,
+      todos: (Array.isArray(todos) ? todos : []).map((t) => ({
+        title: t?.title ?? '',
+        completed: t?.completed ?? false,
+        scheduledDate: t?.scheduledDate ?? null,
       })),
       journalCount: metrics.journalThisMonth,
       gratitudeCount: metrics.gratitudeThisMonth,
@@ -264,17 +300,21 @@ const Progress: React.FC = () => {
                   Weekly completion by day
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
+              <CardContent className="h-64 min-h-[200px]">
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--landing-border)" />
-                    <XAxis dataKey="day" tick={{ fill: 'var(--landing-text)', fontSize: 12 }} />
-                    <YAxis tick={{ fill: 'var(--landing-text)', fontSize: 12 }} />
+                    <XAxis dataKey="day" tick={{ fill: 'var(--landing-text)', fontSize: 11 }} />
+                    <YAxis tick={{ fill: 'var(--landing-text)', fontSize: 12 }} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{ borderRadius: '12px', border: '1px solid var(--landing-border)' }}
-                      formatter={(value: number) => [`${value}%`, 'Completion rate']}
+                      formatter={(value: number, _name: string, props: unknown) => {
+                        const payload = props && typeof props === 'object' && 'payload' in props ? (props as { payload?: { count?: number } }).payload : undefined;
+                        const count = payload?.count ?? value;
+                        return [`${Number(count)} completed (tasks, journal, gratitude, events)`, 'Progress'];
+                      }}
                     />
-                    <Bar dataKey="rate" fill="var(--landing-primary)" radius={[4, 4, 0, 0]} name="Completion %" />
+                    <Bar dataKey="count" fill="var(--landing-primary)" radius={[4, 4, 0, 0]} name="Activity count" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -286,8 +326,8 @@ const Progress: React.FC = () => {
                   Event status distribution
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+              <CardContent className="h-64 min-h-[200px]">
+                <ResponsiveContainer width="100%" height={256}>
                   <PieChart>
                     <Pie
                       data={pieData}

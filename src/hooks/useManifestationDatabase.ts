@@ -494,7 +494,7 @@ export function useManifestationDatabase() {
     await updateStats(15, 0);
   };
 
-  const updateJournalEntry = async (id: string, updates: Partial<Pick<ManifestationJournalEntry, 'title' | 'content' | 'imageUrl' | 'mood'>>) => {
+  const updateJournalEntry = async (id: string, updates: Partial<Pick<ManifestationJournalEntry, 'title' | 'content' | 'imageUrl' | 'mood' | 'date'>>) => {
     if (useLocalStorageOnly) {
       setJournalEntries(prev => {
         const next = prev.map((e) => (e.id === id ? { ...e, ...updates } : e));
@@ -509,6 +509,7 @@ export function useManifestationDatabase() {
     if (updates.content !== undefined) db.content = updates.content;
     if (updates.imageUrl !== undefined) db.image_url = updates.imageUrl;
     if (updates.mood !== undefined) db.mood = updates.mood;
+    if (updates.date !== undefined) db.date = updates.date.split('T')[0];
     if (Object.keys(db).length === 0) return;
     await supabase.from('manifestation_journal_entries').update(db).eq('id', id);
     setJournalEntries(prev => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));

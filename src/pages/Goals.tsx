@@ -11,6 +11,7 @@ import {
   LogIn,
   DollarSign,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +20,7 @@ import { useManifestationDatabase } from '@/hooks/useManifestationDatabase';
 import { useToast } from '@/hooks/use-toast';
 import GoalDetailView from '@/components/GoalDetailView';
 import { AddGoalDialog } from '@/components/AddGoalDialog';
+import { BudgetSpentEditDialog } from '@/components/BudgetSpentEditDialog';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogAction } from '@/components/ui/alert-dialog';
 import type { ManifestationGoal } from '@/hooks/useManifestationDatabase';
 
@@ -42,6 +44,7 @@ export default function Goals() {
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [goalToDeleteId, setGoalToDeleteId] = useState<string | null>(null);
+  const [budgetEditGoal, setBudgetEditGoal] = useState<ManifestationGoal | null>(null);
 
   const selectedGoal = selectedGoalId ? goals.find((g) => g.id === selectedGoalId) : null;
 
@@ -142,7 +145,7 @@ export default function Goals() {
                       )}
                     </div>
                     {(goal.budget != null && goal.budget > 0) && (
-                      <div className="flex flex-wrap gap-4 mb-3 text-sm" style={{ color: 'var(--landing-text)' }}>
+                      <div className="flex flex-wrap items-center gap-4 mb-3 text-sm" style={{ color: 'var(--landing-text)' }} onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
                           <DollarSign className="h-4 w-4" style={{ color: 'var(--landing-primary)' }} />
                           <span><strong>Budget:</strong> {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goal.budget)}</span>
@@ -151,6 +154,9 @@ export default function Goals() {
                           <DollarSign className="h-4 w-4" style={{ color: 'var(--landing-primary)' }} />
                           <span><strong>Spent:</strong> {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goal.spent ?? 0)}</span>
                         </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setBudgetEditGoal(goal)} title="Edit budget and spent">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       </div>
                     )}
                     <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
@@ -179,6 +185,16 @@ export default function Goals() {
         }}
       />
 
+      <BudgetSpentEditDialog
+        goal={budgetEditGoal}
+        onClose={() => setBudgetEditGoal(null)}
+        onSave={async (budget, spent) => {
+          if (!budgetEditGoal) return;
+          await updateGoal(budgetEditGoal.id, { budget, spent });
+          toast({ title: 'Saved', description: 'Budget and spent updated.' });
+          setBudgetEditGoal(null);
+        }}
+      />
       <AlertDialog open={goalToDeleteId != null} onOpenChange={(open) => !open && setGoalToDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

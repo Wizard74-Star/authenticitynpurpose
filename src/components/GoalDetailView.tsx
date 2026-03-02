@@ -162,11 +162,8 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
         ? { ...step, completed: !step.completed, completedAt: step.completed ? undefined : todayIso }
         : step
     );
-    const completed = updatedSteps.filter((s) => s.completed).length;
-    const total = updatedSteps.length || 1;
-    const progress = Math.round((completed / total) * 10);
-    setCurrentGoal((prev) => ({ ...prev, steps: updatedSteps, progress }));
-    await updateGoal(currentGoal.id, { steps: updatedSteps, progress });
+    setCurrentGoal((prev) => ({ ...prev, steps: updatedSteps }));
+    await updateGoal(currentGoal.id, { steps: updatedSteps });
   };
 
   const handleAddNote = async () => {
@@ -214,11 +211,8 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
 
   const handleRemoveStep = async (stepId: string) => {
     const nextSteps = (currentGoal.steps ?? []).filter((s) => s.id !== stepId);
-    const completed = nextSteps.filter((s) => s.completed).length;
-    const total = nextSteps.length || 1;
-    const progress = Math.round((completed / total) * 10);
-    setCurrentGoal((prev) => ({ ...prev, steps: nextSteps, progress }));
-    await updateGoal(currentGoal.id, { steps: nextSteps, progress });
+    setCurrentGoal((prev) => ({ ...prev, steps: nextSteps }));
+    await updateGoal(currentGoal.id, { steps: nextSteps });
   };
 
   const handleEditStepTitle = async (stepId: string, title: string) => {

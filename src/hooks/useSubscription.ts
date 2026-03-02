@@ -11,6 +11,8 @@ interface SubscriptionData {
   isPremium: boolean;
   isFamily: boolean;
   isTrial: boolean;
+  /** True when status was trialing and trial_end has passed (no paid subscription). */
+  trialExpired: boolean;
   trialEnd: number | null;
   trialStart: number | null;
   trialDaysRemaining: number | null;
@@ -30,6 +32,7 @@ export const useSubscription = () => {
     isPremium: false,
     isFamily: false,
     isTrial: false,
+    trialExpired: false,
     trialEnd: null,
     trialStart: null,
     trialDaysRemaining: null,
@@ -69,8 +72,10 @@ export const useSubscription = () => {
       if (data) {
         const isFamily = data.plan_name?.toLowerCase().includes('family') || false;
         const isTrial = data.status === 'trialing';
-        const isPremium = data.status === 'active' || isTrial;
         const now = Date.now() / 1000;
+        const trialEndSec = data.trial_end ?? 0;
+        const trialExpired = isTrial && trialEndSec > 0 && now >= trialEndSec;
+        const isPremium = (data.status === 'active' || (isTrial && !trialExpired));
 
         // Correct trial dates if trial was started after account creation (legacy bug)
         const TRIAL_DAYS = 7;
@@ -99,17 +104,19 @@ export const useSubscription = () => {
           data.current_period_end = correctTrialEnd;
         }
 
+        const TRIAL_DAYS_CAP = 7;
         let trialDaysRemaining: number | null = null;
         let trialDaysUsed: number | null = null;
         if (data.trial_start != null && data.trial_end != null) {
           const trialStartSec = data.trial_start;
           const trialEndSec = data.trial_end;
-          const trialTotalDays = Math.ceil((trialEndSec - trialStartSec) / 86400);
+          const trialTotalDays = Math.min(TRIAL_DAYS_CAP, Math.ceil((trialEndSec - trialStartSec) / 86400));
           if (now < trialEndSec) {
             trialDaysRemaining = Math.ceil((trialEndSec - now) / 86400);
             if (trialDaysRemaining < 0) trialDaysRemaining = 0;
             trialDaysUsed = Math.floor((now - trialStartSec) / 86400);
             if (trialDaysUsed < 0) trialDaysUsed = 0;
+            if (trialDaysUsed > TRIAL_DAYS_CAP) trialDaysUsed = TRIAL_DAYS_CAP;
           } else {
             trialDaysRemaining = 0;
             trialDaysUsed = trialTotalDays;
@@ -121,7 +128,8 @@ export const useSubscription = () => {
         if (data.current_period_start != null && data.current_period_end != null) {
           const start = data.current_period_start;
           const end = data.current_period_end;
-          periodLengthDays = Math.ceil((end - start) / 86400);
+          const rawPeriodDays = Math.ceil((end - start) / 86400);
+          periodLengthDays = isTrial ? Math.min(TRIAL_DAYS_CAP, rawPeriodDays) : rawPeriodDays;
           subscribedDaysInPeriod = Math.floor((now - start) / 86400) + 1;
           if (subscribedDaysInPeriod < 1) subscribedDaysInPeriod = 1;
           if (subscribedDaysInPeriod > periodLengthDays) subscribedDaysInPeriod = periodLengthDays;
@@ -134,6 +142,7 @@ export const useSubscription = () => {
           isPremium,
           isFamily,
           isTrial,
+          trialExpired,
           trialEnd: data.trial_end,
           trialStart: data.trial_start,
           trialDaysRemaining,
@@ -188,7 +197,8 @@ export const useSubscription = () => {
             let periodLengthDays: number | null = null;
             if (periodStart != null && periodEnd != null) {
               const now = Date.now() / 1000;
-              periodLengthDays = Math.ceil((periodEnd - periodStart) / 86400);
+              const rawPeriodDays = Math.ceil((periodEnd - periodStart) / 86400);
+              periodLengthDays = Math.min(7, rawPeriodDays);
               subscribedDaysInPeriod = Math.floor((now - periodStart) / 86400) + 1;
               if (subscribedDaysInPeriod < 1) subscribedDaysInPeriod = 1;
               if (subscribedDaysInPeriod > periodLengthDays) subscribedDaysInPeriod = periodLengthDays;
@@ -200,6 +210,7 @@ export const useSubscription = () => {
               isPremium: true,
               isFamily: false,
               isTrial,
+              trialExpired: false,
               trialEnd: trialEndTs,
               trialStart: newData.trial_start ?? null,
               trialDaysRemaining,
@@ -218,6 +229,7 @@ export const useSubscription = () => {
             isPremium: false,
             isFamily: false,
             isTrial: false,
+            trialExpired: false,
             trialEnd: null,
             trialStart: null,
             trialDaysRemaining: null,
