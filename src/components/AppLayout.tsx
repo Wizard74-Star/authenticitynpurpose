@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { ProductTour } from './ProductTour';
 import { OfflineIndicator } from './OfflineIndicator';
 import { AIChatbot } from './AIChatbot';
@@ -17,6 +18,7 @@ const AppLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
+  const { trialExpired, loading: subscriptionLoading } = useSubscription();
   const [isTourActive, setIsTourActive] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -80,7 +82,23 @@ const AppLayout: React.FC = () => {
     );
   }
 
+  useEffect(() => {
+    if (user && !subscriptionLoading && trialExpired && location.pathname === '/') {
+      navigate('/settings', { replace: true, state: { trialExpiredRedirect: true } });
+    }
+  }, [user, subscriptionLoading, trialExpired, location.pathname, navigate]);
+
   if (user) {
+    if (!subscriptionLoading && trialExpired && location.pathname === '/') {
+      return (
+        <div className="flex items-center justify-center min-h-screen landing" style={{ backgroundColor: 'var(--landing-bg)' }}>
+          <div className="text-center" style={{ color: 'var(--landing-primary)' }}>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="font-medium">Redirecting to subscription...</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <AuthenticatedLayout>
         <Suspense fallback={
