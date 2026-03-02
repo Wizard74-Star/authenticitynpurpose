@@ -11,7 +11,7 @@ import writtenPlanImg from '@/assets/images/Written-plan.jpg';
 import calendarImg from '@/assets/images/Calendar.jpg';
 import aiAnalysisImg from '@/assets/images/AI-analysis.jpg';
 import getAIFeedbackImg from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
-import familyConnectionImg from '@/assets/images/familiy-connection.jpg';
+import familyConnectionImg from '@/assets/images/Family-connection.jpg';
 
 const featureShowcaseItems = [
   { img: goalsImg, title: 'Goals', desc: 'Set and track what matters to you.' },
