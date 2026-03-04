@@ -14,7 +14,7 @@ import stepImg3 from '@/assets/images/Attach-goals-to-time.jpg';
 import stepImg4 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
 import successPhoneImg from '@/assets/images/hand-holding-smartphone-displaying-financial-app-with-quotsuccessquot-notification_1298745-37939.jpg';
 import problemImg1 from '@/assets/images/happy-man.jpg';
-import problemImg2 from '@/assets/images/Set-Goals-Woman.jpg';
+import problemImg2 from '@/assets/images/young-beautiful-businesswoman-smiling-sitting-workplace-typing-laptop_176420-3702.jpg';
 import problemImg3 from '@/assets/images/Tomorrow-Goal.jpg';
 import problemImg4 from '@/assets/images/family-connection.jpg';  
 import problemImg5 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
