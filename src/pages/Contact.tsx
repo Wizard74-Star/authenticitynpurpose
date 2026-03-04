@@ -8,12 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Mail,
   Phone,
-  MapPin,
   Send,
-  Facebook,
-  Twitter,
-  Linkedin,
-  Instagram,
   HelpCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -68,31 +63,17 @@ export default function Contact() {
     {
       icon: Mail,
       title: 'Email',
-      value: 'support@depogoals.com',
-      href: 'mailto:support@depogoals.com',
+      value: 'info@authenticitynpurpose.com',
+      href: 'mailto:info@authenticitynpurpose.com',
       description: 'Best for detailed questions',
     },
     {
       icon: Phone,
       title: 'Phone',
-      value: '+1 (234) 567-890',
-      href: 'tel:+1234567890',
+      value: '+1 (701) 711-7160',
+      href: 'tel:+17017117160',
       description: 'Mon–Fri, 9am–6pm EST',
     },
-    {
-      icon: MapPin,
-      title: 'Office',
-      value: '123 Success Street',
-      href: null as string | null,
-      description: 'Goal City, GC 12345',
-    },
-  ];
-
-  const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-    { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
   ];
 
   return (
@@ -224,33 +205,6 @@ export default function Contact() {
                   </CardContent>
                 </Card>
               ))}
-
-              <Card
-                className="border-2 animate-slide-up feature-card-shadow"
-                style={{ backgroundColor: 'var(--landing-bg)', borderColor: 'var(--landing-border)', animationDelay: '0.35s' }}
-              >
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-bold" style={{ color: 'var(--landing-text)' }}>Follow us</CardTitle>
-                  <CardDescription style={{ color: 'var(--landing-text)', opacity: 0.8 }}>Stay in the loop</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-3">
-                    {socialLinks.map(({ icon: Icon, href, label }) => (
-                      <a
-                        key={label}
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-300 hover:scale-110 hover:shadow-md"
-                        style={{ backgroundColor: 'var(--landing-accent)' }}
-                        aria-label={label}
-                      >
-                        <Icon className="h-5 w-5" style={{ color: 'var(--landing-primary)' }} />
-                      </a>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
 
