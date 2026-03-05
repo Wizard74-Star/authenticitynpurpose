@@ -400,7 +400,7 @@ export const LandingContent: React.FC = () => {
               </svg>
             </motion.div>
             <motion.h1
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl mx-auto mb-5 sm:mb-6 leading-[1.1]"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold tracking-tight max-w-4xl mx-auto mb-5 sm:mb-6 leading-[1.1]"
               style={{ color: 'rgba(255,255,255,0.98)', textShadow: '0 2px 20px rgba(0,0,0,0.15), 0 4px 40px rgba(0,0,0,0.1)' }}
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
