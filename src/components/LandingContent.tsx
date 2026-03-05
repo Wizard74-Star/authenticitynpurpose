@@ -355,79 +355,60 @@ export const LandingContent: React.FC = () => {
         <div className="absolute inset-0" style={{ backgroundColor: 'var(--landing-accent)', opacity: 0 }} aria-hidden />
         <HeroFloatingCircles />
         <div className="relative z-10 flex-1 flex flex-col justify-between w-full max-w-6xl mx-auto text-center px-4 sm:px-6">
-          {/* Hero Compass — top of hero */}
-          <motion.div
-            className="relative flex justify-center pt-6 sm:pt-8"
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div
-              className="absolute inset-0 rounded-full blur-2xl opacity-40"
-              style={{
-                background: 'radial-gradient(circle, var(--landing-primary) 0%, transparent 65%)',
-                transform: 'scale(1.8)',
-              }}
-              aria-hidden
-            />
+          {/* Hero content — title, subline, CTA */}
+          <div className="flex flex-col items-center justify-center pt-8 sm:pt-12 pb-4">
+            {/* <motion.span
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-[0.2em] mb-6 sm:mb-8"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)' }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            >
+              Your journey starts here
+            </motion.span> */}
+            {/* Flat-design compass — bezel, dial, red/blue needle, subtle shadow */}
             <motion.div
-              className="relative"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+              className="mb-5 sm:mb-6 drop-shadow-md"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+              aria-hidden
             >
               <svg
-                viewBox="0 0 200 200"
-                className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 drop-shadow-2xl"
-                style={{ filter: 'drop-shadow(0 0 24px rgba(44, 157, 115, 0.35))' }}
-                aria-hidden
+                viewBox="0 0 64 64"
+                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20"
+                fill="none"
+                style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.12))' }}
               >
                 <defs>
-                  <linearGradient id="compass-needle-n" x1="50%" y1="0%" x2="50%" y2="100%">
-                    <stop offset="0%" stopColor="white" />
-                    <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
-                  </linearGradient>
-                  <linearGradient id="compass-needle-s" x1="50%" y1="100%" x2="50%" y2="0%">
-                    <stop offset="0%" stopColor="white" />
-                    <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
-                  </linearGradient>
-                  <filter id="compass-glow">
-                    <feGaussianBlur stdDeviation="2" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
+                  <filter id="compass-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="2" floodColor="#BDC3C7" floodOpacity="0.4" />
                   </filter>
                 </defs>
-                {/* Rings — white only */}
-                <circle cx="100" cy="100" r="94" fill="none" stroke="white" strokeWidth="3" opacity="0.95" />
-                <circle cx="100" cy="100" r="88" fill="none" stroke="white" strokeWidth="1" opacity="0.5" />
-                {/* Cardinal ticks — white */}
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const angle = (i * 30 - 90) * (Math.PI / 180);
-                  const outerR = 94;
-                  const innerR = i % 3 === 0 ? 68 : 80;
-                  const x1 = 100 + outerR * Math.cos(angle);
-                  const y1 = 100 + outerR * Math.sin(angle);
-                  const x2 = 100 + innerR * Math.cos(angle);
-                  const y2 = 100 + innerR * Math.sin(angle);
-                  return (
-                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="white" strokeWidth={i % 3 === 0 ? 2.5 : 1.5} strokeLinecap="round" opacity="0.9" />
-                  );
-                })}
-                {/* N E S W labels — white, larger font */}
-                <text x="100" y="38" textAnchor="middle" fill="white" fontSize="28" fontWeight="700" fontFamily="system-ui, sans-serif">N</text>
-                <text x="162" y="104" textAnchor="middle" fill="white" fontSize="22" fontWeight="700" fontFamily="system-ui, sans-serif">E</text>
-                <text x="100" y="178" textAnchor="middle" fill="white" fontSize="22" fontWeight="700" fontFamily="system-ui, sans-serif">S</text>
-                <text x="38" y="104" textAnchor="middle" fill="white" fontSize="22" fontWeight="700" fontFamily="system-ui, sans-serif">W</text>
-                {/* Needle — white */}
-                <path d="M100 32 L94 100 L100 92 L106 100 Z" fill="url(#compass-needle-n)" filter="url(#compass-glow)" />
-                <path d="M100 168 L106 100 L100 108 L94 100 Z" fill="url(#compass-needle-s)" />
-                {/* Center cap — white */}
-                <circle cx="100" cy="100" r="12" fill="white" opacity="0.95" />
-                <circle cx="100" cy="100" r="8" fill="rgba(255,255,255,0.6)" />
+                <g filter="url(#compass-shadow)">
+                  {/* Outer ring (bezel) — dark blue */}
+                  <circle cx="32" cy="32" r="30" fill="#2C3E50" />
+                  {/* Inner dial — light grey-blue */}
+                  <circle cx="32" cy="32" r="24" fill="#E0E6F0" />
+                  {/* Needle — top half red */}
+                  <path d="M32 14 L28 32 L36 32 Z" fill="#E74C3C" />
+                  {/* Needle — bottom half light blue */}
+                  <path d="M32 50 L36 32 L28 32 Z" fill="#3498DB" />
+                  {/* Central pivot — dark blue */}
+                  <circle cx="32" cy="32" r="5" fill="#2C3E50" />
+                </g>
               </svg>
             </motion.div>
-          </motion.div>
+            <motion.h1
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl mx-auto mb-5 sm:mb-6 leading-[1.1]"
+              style={{ color: 'rgba(255,255,255,0.98)', textShadow: '0 2px 20px rgba(0,0,0,0.15), 0 4px 40px rgba(0,0,0,0.1)' }}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            >
+              Find your path
+            </motion.h1>
+          </div>
 
           {/* Slide index — bottom of hero */}
           <motion.div
