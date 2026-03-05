@@ -20,7 +20,7 @@ import problemImg4 from '@/assets/images/family-connection.jpg';
 import problemImg5 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
 
 const heroSlides = [
-  { bg: landingBg1, headline: 'Ready to chart your own course!' },
+  { bg: landingBg1, headline: 'Find Your Direction!' },
   { bg: landingBg2, headline: 'Choose your own path.' },
   { bg: landingBg3, headline: 'Build deeper connections!' },
 ];
@@ -336,7 +336,7 @@ export const LandingContent: React.FC = () => {
         className="relative py-20 sm:py-28 px-4 min-h-[28rem] flex items-center justify-center overflow-hidden"
       >
         <motion.div
-          className="absolute inset-0 flex items-center justify-center origin-center"
+          className="absolute inset-0 flex flex-col origin-center"
           style={{ scale: heroScale, opacity: heroOpacity }}
         >
         <div className="absolute inset-0" aria-hidden>
@@ -354,22 +354,89 @@ export const LandingContent: React.FC = () => {
         </div>
         <div className="absolute inset-0" style={{ backgroundColor: 'var(--landing-accent)', opacity: 0 }} aria-hidden />
         <HeroFloatingCircles />
-        <div className="relative z-10 max-w-6xl mx-auto text-center px-4 sm:px-6">
-          <h1
-            key={heroSlideIndex}
-            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-white opacity-0 animate-hero-headline-in"
-            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}
+        <div className="relative z-10 flex-1 flex flex-col justify-between w-full max-w-6xl mx-auto text-center px-4 sm:px-6">
+          {/* Hero Compass — top of hero */}
+          <motion.div
+            className="relative flex justify-center pt-6 sm:pt-8"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           >
-            {heroSlides[heroSlideIndex].headline}
-          </h1>
-          <p
-            className="text-lg sm:text-xl mb-10 font-semibold max-w-2xl mx-auto text-white"
-            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}
+            <div
+              className="absolute inset-0 rounded-full blur-2xl opacity-40"
+              style={{
+                background: 'radial-gradient(circle, var(--landing-primary) 0%, transparent 65%)',
+                transform: 'scale(1.8)',
+              }}
+              aria-hidden
+            />
+            <motion.div
+              className="relative"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+            >
+              <svg
+                viewBox="0 0 200 200"
+                className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 drop-shadow-2xl"
+                style={{ filter: 'drop-shadow(0 0 24px rgba(44, 157, 115, 0.35))' }}
+                aria-hidden
+              >
+                <defs>
+                  <linearGradient id="compass-needle-n" x1="50%" y1="0%" x2="50%" y2="100%">
+                    <stop offset="0%" stopColor="white" />
+                    <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
+                  </linearGradient>
+                  <linearGradient id="compass-needle-s" x1="50%" y1="100%" x2="50%" y2="0%">
+                    <stop offset="0%" stopColor="white" />
+                    <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
+                  </linearGradient>
+                  <filter id="compass-glow">
+                    <feGaussianBlur stdDeviation="2" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                {/* Rings — white only */}
+                <circle cx="100" cy="100" r="94" fill="none" stroke="white" strokeWidth="3" opacity="0.95" />
+                <circle cx="100" cy="100" r="88" fill="none" stroke="white" strokeWidth="1" opacity="0.5" />
+                {/* Cardinal ticks — white */}
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const angle = (i * 30 - 90) * (Math.PI / 180);
+                  const outerR = 94;
+                  const innerR = i % 3 === 0 ? 68 : 80;
+                  const x1 = 100 + outerR * Math.cos(angle);
+                  const y1 = 100 + outerR * Math.sin(angle);
+                  const x2 = 100 + innerR * Math.cos(angle);
+                  const y2 = 100 + innerR * Math.sin(angle);
+                  return (
+                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="white" strokeWidth={i % 3 === 0 ? 2.5 : 1.5} strokeLinecap="round" opacity="0.9" />
+                  );
+                })}
+                {/* N E S W labels — white, larger font */}
+                <text x="100" y="38" textAnchor="middle" fill="white" fontSize="28" fontWeight="700" fontFamily="system-ui, sans-serif">N</text>
+                <text x="162" y="104" textAnchor="middle" fill="white" fontSize="22" fontWeight="700" fontFamily="system-ui, sans-serif">E</text>
+                <text x="100" y="178" textAnchor="middle" fill="white" fontSize="22" fontWeight="700" fontFamily="system-ui, sans-serif">S</text>
+                <text x="38" y="104" textAnchor="middle" fill="white" fontSize="22" fontWeight="700" fontFamily="system-ui, sans-serif">W</text>
+                {/* Needle — white */}
+                <path d="M100 32 L94 100 L100 92 L106 100 Z" fill="url(#compass-needle-n)" filter="url(#compass-glow)" />
+                <path d="M100 168 L106 100 L100 108 L94 100 Z" fill="url(#compass-needle-s)" />
+                {/* Center cap — white */}
+                <circle cx="100" cy="100" r="12" fill="white" opacity="0.95" />
+                <circle cx="100" cy="100" r="8" fill="rgba(255,255,255,0.6)" />
+              </svg>
+            </motion.div>
+          </motion.div>
+
+          {/* Slide index — bottom of hero */}
+          <motion.div
+            className="flex justify-center gap-2.5 pb-6 sm:pb-8"
+            aria-label="Hero slide"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
           >
-            {heroSubline}
-          </p>
-          {/* Slide indicators — pill with progress fill */}
-          <div className="flex justify-center gap-2.5 mb-8" aria-label="Hero slide">
             {heroSlides.map((_, i) => {
               const isActive = heroSlideIndex === i;
               return (
@@ -377,17 +444,18 @@ export const LandingContent: React.FC = () => {
                   key={i}
                   type="button"
                   onClick={() => setHeroSlideIndex(i)}
-                  className="relative h-2 rounded-full overflow-hidden transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--landing-primary)] min-w-[8px]"
+                  className="relative h-2 rounded-full overflow-hidden transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white min-w-[8px]"
                   style={{
                     width: isActive ? 48 : 8,
                     backgroundColor: isActive ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)',
-                    boxShadow: isActive ? '0 0 12px rgba(44, 157, 115, 0.25)' : undefined,
+                    boxShadow: isActive ? '0 0 12px rgba(44, 157, 115, 0.3)' : undefined,
                   }}
                   aria-current={isActive ? 'true' : undefined}
                   aria-label={`Go to slide ${i + 1}`}
                 >
                   {isActive && (
                     <span
+                      key={heroSlideIndex}
                       className="absolute inset-y-0 left-0 rounded-full animate-hero-indicator-progress"
                       style={{ backgroundColor: 'var(--landing-primary)' }}
                     />
@@ -395,28 +463,7 @@ export const LandingContent: React.FC = () => {
                 </button>
               );
             })}
-          </div>
-          <div
-            className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up"
-            style={{ animationDelay: '0.4s' }}
-          >
-            <AuthModal
-              trigger={
-                <Button size="lg" variant="default" className="trial-cta">
-                  Start 7-day free trial
-                </Button>
-              }
-              defaultMode="signup"
-            />
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => navigate('/demo')}
-              className="hero-cta-outline"
-            >
-              Watch demo
-            </Button>
-          </div>
+          </motion.div>
         </div>
         </motion.div>
       </section>
