@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { LandingPageLayout } from "@/components/LandingPageLayout";
 import { HeroFloatingCircles } from "@/components/HeroFloatingCircles";
 import { AuthModal } from "@/components/auth/AuthModal";
-import featuresBg from "@/assets/images/features-bg.jpg";
+import aboutUsHero from "@/assets/images/About-us.png";
 import writtenPlanImg from "@/assets/images/Written-plan.jpg";
 
 const values = [
@@ -40,7 +40,7 @@ export default function About() {
         className="relative py-20 sm:py-28 px-4 min-h-[28rem] flex items-center justify-center overflow-hidden"
       >
         <div className="absolute inset-0" aria-hidden>
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${featuresBg})` }} />
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${aboutUsHero})` }} />
         </div>
         <div className="absolute inset-0" style={{ backgroundColor: "var(--landing-accent)", opacity: 0.88 }} aria-hidden />
         <HeroFloatingCircles />

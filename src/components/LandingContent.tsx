@@ -11,7 +11,7 @@ import landingBg3 from '@/assets/images/landing-bg3.png';
 import stepImg1 from '@/assets/images/Choose-who-you-want-to-become.jpg';
 import stepImg2 from '@/assets/images/Write-your-goals-and-development-plan.jpg';
 import stepImg3 from '@/assets/images/Attach-goals-to-time.jpg';
-import stepImg4 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
+import stepImg4 from '@/assets/images/AI-analysis2.jpg';
 import successPhoneImg from '@/assets/images/hand-holding-smartphone-displaying-financial-app-with-quotsuccessquot-notification_1298745-37939.jpg';
 import problemImg1 from '@/assets/images/happy-man.jpg';
 import problemImg2 from '@/assets/images/Set-Goals-Woman.jpg';
