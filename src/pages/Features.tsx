@@ -9,8 +9,8 @@ import featuresBg from '@/assets/images/features-bg.jpg';
 import goalsImg from '@/assets/images/Goals.jpg';
 import writtenPlanImg from '@/assets/images/Written-plan.jpg';
 import calendarImg from '@/assets/images/Calendar.jpg';
-import aiAnalysisImg from '@/assets/images/AI-analysis2.jpg';
-import getAIFeedbackImg from '@/assets/images/AI-analysis.jpg';
+import aiAnalysisImg from '@/assets/images/AI-analysis3.jpg';
+import getAIFeedbackImg from '@/assets/images/AI-analysis2.jpg';
 import familyConnectionImg1 from '@/assets/images/family-painting-floor_23-2147997732.jpg';
 import familyConnectionImg2 from '@/assets/images/father-daughter-playing-with-planes_23-2147997391.jpg';
 
