@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,7 +51,6 @@ type TimelineEntry =
   | { type: 'image'; id: string; date: string; url: string; label?: string; progress: number };
 
 export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal, isMutating = false, useMockInsightsOnly = false }: GoalDetailViewProps) {
-  const navigate = useNavigate();
   const [currentGoal, setCurrentGoal] = useState(goal);
   const [newNote, setNewNote] = useState('');
   const [newNotePhase, setNewNotePhase] = useState<GoalNotePhase>(1);
@@ -64,6 +62,7 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
   const [editPriority, setEditPriority] = useState(goal.priority);
   const [editSteps, setEditSteps] = useState<GoalStep[]>(goal.steps ?? []);
   const [editImageUrl, setEditImageUrl] = useState(goal.imageUrl ?? '');
+  const [editTargetDate, setEditTargetDate] = useState(goal.targetDate ?? '');
   const [imageError, setImageError] = useState('');
   const editImageFileRef = React.useRef<HTMLInputElement>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
@@ -104,9 +103,10 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
       setEditPriority(currentGoal.priority);
       setEditSteps(currentGoal.steps ?? []);
       setEditImageUrl(currentGoal.imageUrl ?? '');
+      setEditTargetDate(currentGoal.targetDate ?? '');
       setImageError('');
     }
-  }, [editOpen, currentGoal.title, currentGoal.description, currentGoal.timeline, currentGoal.priority, currentGoal.steps, currentGoal.imageUrl]);
+  }, [editOpen, currentGoal.title, currentGoal.description, currentGoal.timeline, currentGoal.priority, currentGoal.steps, currentGoal.imageUrl, currentGoal.targetDate]);
 
   useEffect(() => {
     if (useMockInsightsOnly) {
@@ -299,7 +299,7 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
               onClick={async () => {
                 if (onDeleteGoal) {
                   await onDeleteGoal(currentGoal.id);
-                  navigate(-1);
+                  onBack();
                 }
               }}
             >
@@ -344,6 +344,10 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
                   <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label style={{ color: 'var(--landing-text)' }}>Target date / deadline</Label>
+              <Input type="date" value={editTargetDate} onChange={(e) => setEditTargetDate(e.target.value)} className="mt-1.5 rounded-xl w-full max-w-[200px]" style={{ borderColor: 'var(--landing-border)' }} />
             </div>
             <div>
               <Label style={{ color: 'var(--landing-text)' }}>Cover image</Label>
@@ -420,8 +424,9 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
                 onClick={async () => {
                   const steps = editSteps.filter((s) => s.title.trim() !== '').map((s) => ({ ...s, title: s.title.trim() }));
                   const newImageUrl = editImageUrl.trim() || undefined;
-                  await updateGoal(currentGoal.id, { title: editTitle.trim(), description: editDescription.trim(), timeline: editTimeline, priority: editPriority, steps, imageUrl: newImageUrl });
-                  setCurrentGoal((prev) => ({ ...prev, title: editTitle.trim(), description: editDescription.trim(), timeline: editTimeline, priority: editPriority, steps, imageUrl: newImageUrl }));
+                  const newTargetDate = editTargetDate.trim() || undefined;
+                  await updateGoal(currentGoal.id, { title: editTitle.trim(), description: editDescription.trim(), timeline: editTimeline, priority: editPriority, steps, imageUrl: newImageUrl, targetDate: newTargetDate ?? null });
+                  setCurrentGoal((prev) => ({ ...prev, title: editTitle.trim(), description: editDescription.trim(), timeline: editTimeline, priority: editPriority, steps, imageUrl: newImageUrl, targetDate: newTargetDate ?? null }));
                   setEditOpen(false);
                 }}
                 disabled={!editTitle.trim()}
@@ -454,13 +459,22 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Button
-                onClick={() => navigate(-1)}
+                onClick={onBack}
                 variant="ghost"
                 size="sm"
                 className="rounded-full text-white border border-white/40 hover:bg-white/20 hover:border-white/60"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Back
+              </Button>
+              <Button
+                onClick={() => setEditOpen((v) => !v)}
+                variant="ghost"
+                size="sm"
+                className="rounded-full text-white border border-white/40 hover:bg-white/20 hover:border-white/60"
+              >
+                <PenLine className="h-4 w-4 mr-1" />
+                Edit goal
               </Button>
               {onDeleteGoal && (
                 <Button

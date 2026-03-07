@@ -19,6 +19,7 @@ import { useManifestationDatabase } from '@/hooks/useManifestationDatabase';
 import { useToast } from '@/hooks/use-toast';
 import GoalDetailView from '@/components/GoalDetailView';
 import { AddGoalDialog } from '@/components/AddGoalDialog';
+import { EditGoalDialog } from '@/components/EditGoalDialog';
 import { BudgetSpentEditDialog } from '@/components/BudgetSpentEditDialog';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogAction } from '@/components/ui/alert-dialog';
 import type { ManifestationGoal } from '@/hooks/useManifestationDatabase';
@@ -44,6 +45,7 @@ export default function Goals() {
   const [addGoalOpen, setAddGoalOpen] = useState(false);
   const [goalToDeleteId, setGoalToDeleteId] = useState<string | null>(null);
   const [budgetEditGoal, setBudgetEditGoal] = useState<ManifestationGoal | null>(null);
+  const [editGoal, setEditGoal] = useState<ManifestationGoal | null>(null);
 
   const selectedGoal = selectedGoalId ? goals.find((g) => g.id === selectedGoalId) : null;
 
@@ -111,6 +113,9 @@ export default function Goals() {
                       <h3 className="text-lg font-semibold" style={{ color: 'var(--landing-text)' }}>{goal.title}</h3>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-2xl font-bold" style={{ color: 'var(--landing-primary)' }}>{goal.progress}/10</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100" onClick={(e) => { e.stopPropagation(); setEditGoal(goal); }} title="Edit goal">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setGoalToDeleteId(goal.id); }} title="Delete goal">
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -202,6 +207,16 @@ export default function Goals() {
           await updateGoal(budgetEditGoal.id, { budget, spent });
           toast({ title: 'Saved', description: 'Budget and spent updated.' });
           setBudgetEditGoal(null);
+        }}
+      />
+      <EditGoalDialog
+        open={!!editGoal}
+        onOpenChange={(o) => !o && setEditGoal(null)}
+        goal={editGoal}
+        onSave={async (id, updates) => {
+          await updateGoal(id, updates);
+          toast({ title: 'Saved', description: 'Goal updated.' });
+          setEditGoal(null);
         }}
       />
       <AlertDialog open={goalToDeleteId != null} onOpenChange={(open) => !open && setGoalToDeleteId(null)}>

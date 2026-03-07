@@ -53,6 +53,7 @@ import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
 import { useToast } from '@/hooks/use-toast';
 import GoalDetailView from '@/components/GoalDetailView';
 import { AddGoalDialog } from '@/components/AddGoalDialog';
+import { EditGoalDialog } from '@/components/EditGoalDialog';
 import { DemoOnboardingModals } from '@/components/DemoOnboardingModals';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
@@ -107,6 +108,7 @@ export default function Dashboard() {
   const [gratitudeDialogOpen, setGratitudeDialogOpen] = useState(false);
   const [journalDialogOpen, setJournalDialogOpen] = useState(false);
   const [budgetEditGoal, setBudgetEditGoal] = useState<ManifestationGoal | null>(null);
+  const [editGoal, setEditGoal] = useState<ManifestationGoal | null>(null);
   const [slotClickTime, setSlotClickTime] = useState<string | undefined>();
   const [overviewNewTaskTitle, setOverviewNewTaskTitle] = useState('');
   const [overviewNewGratitude, setOverviewNewGratitude] = useState('');
@@ -714,10 +716,13 @@ export default function Dashboard() {
                       </div>
                     )}
                     <CardContent className="p-4 sm:p-6">
-                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div className="flex justify-between items-start gap-2 mb-2">
                         <h3 className="text-base sm:text-lg font-semibold min-w-0 line-clamp-2" style={{ color: 'var(--landing-text)' }}>{goal.title}</h3>
                         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                           <span className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--landing-primary)' }}>{goal.progress}/10</span>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 touch-manipulation" onClick={(e) => { e.stopPropagation(); setEditGoal(goal); }} title="Edit goal">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50 touch-manipulation" onClick={(e) => { e.stopPropagation(); setGoalToDeleteId(goal.id); }} title="Delete goal">
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1258,6 +1263,16 @@ export default function Dashboard() {
           await updateGoal(budgetEditGoal.id, { budget, spent });
           toast({ title: 'Saved', description: 'Budget and spent updated.' });
           setBudgetEditGoal(null);
+        }}
+      />
+      <EditGoalDialog
+        open={!!editGoal}
+        onOpenChange={(o) => !o && setEditGoal(null)}
+        goal={editGoal}
+        onSave={async (id, updates) => {
+          await updateGoal(id, updates);
+          toast({ title: 'Saved', description: 'Goal updated.' });
+          setEditGoal(null);
         }}
       />
       </div>
