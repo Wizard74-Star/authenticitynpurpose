@@ -184,7 +184,7 @@ export function JournalEntryForm({
         <Input
           value={tagsStr}
           onChange={(e) => setTagsStr(e.target.value)}
-          placeholder="work, family, travel, gratitude (comma separated)"
+          placeholder="work, family, travel, appreciate (comma separated)"
           className="rounded-xl border-[var(--landing-border)]"
           style={{ color: 'var(--landing-text)' }}
         />

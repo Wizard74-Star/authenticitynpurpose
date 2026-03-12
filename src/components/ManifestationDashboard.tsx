@@ -375,7 +375,7 @@ const ManifestationDashboard: React.FC = () => {
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="dashboard-timeline-badge bg-white/20 backdrop-blur-sm rounded-2xl px-5 py-3 text-center min-w-[100px]">
                 <p className="text-2xl font-bold text-white">{stats.totalGoals}</p>
-                <p className="text-xs text-white/80">Goals</p>
+                <p className="text-xs text-white/80">Goals–Vision Board</p>
               </div>
               <div className="dashboard-timeline-badge bg-white/20 backdrop-blur-sm rounded-2xl px-5 py-3 text-center min-w-[100px]">
                 <p className="text-2xl font-bold text-white">{stats.scheduledEvents}</p>
@@ -413,7 +413,7 @@ const ManifestationDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="goals" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow data-[state=active]:text-[var(--landing-primary)]">
               <Target className="h-4 w-4 mr-2" />
-              Goals
+              Goals–Vision Board
             </TabsTrigger>
             <TabsTrigger value="todos" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow data-[state=active]:text-[var(--landing-primary)]">
               <Check className="h-4 w-4 mr-2" />
@@ -421,7 +421,7 @@ const ManifestationDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="gratitude" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow data-[state=active]:text-[var(--landing-primary)]">
               <Heart className="h-4 w-4 mr-2" />
-              Gratitude
+              Appreciate
             </TabsTrigger>
             <TabsTrigger value="journal" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow data-[state=active]:text-[var(--landing-primary)]">
               <BookOpen className="h-4 w-4 mr-2" />
@@ -632,7 +632,7 @@ const ManifestationDashboard: React.FC = () => {
                   Timeline & direction
                 </p>
                 <h3 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--landing-text)' }}>
-                  Your Goals
+                  Your Goals–Vision Board
                 </h3>
               </div>
               <Button
@@ -790,10 +790,13 @@ const ManifestationDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium mb-1.5 opacity-75" style={{ color: 'var(--landing-text)' }}>
+                          <p
+                            className="text-xs font-semibold mb-1.5 opacity-90 tracking-wide"
+                            style={{ color: '#1d4ed8' }}
+                          >
                             Progress {goal.progress}/10 — update in goal detail
                           </p>
-                          <Progress value={goal.progress * 10} className="h-2" style={{ backgroundColor: 'var(--landing-accent)' }} />
+                          <Progress value={goal.progress * 10} variant="goal" className="h-2" />
                         </div>
                       </div>
 
@@ -1060,7 +1063,7 @@ const ManifestationDashboard: React.FC = () => {
                   Mindfulness
                 </p>
                 <h3 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--landing-text)' }}>
-                  Gratitude Journal
+                  Appreciate
                 </h3>
               </div>
               <Button
@@ -1069,7 +1072,7 @@ const ManifestationDashboard: React.FC = () => {
                 style={{ backgroundColor: 'var(--landing-primary)', color: 'white' }}
               >
                 <Heart className="h-4 w-4 mr-2" />
-                Add Gratitude
+                Add appreciation
               </Button>
             </div>
             {gratitudeEntries.length > 0 ? (
@@ -1110,10 +1113,10 @@ const ManifestationDashboard: React.FC = () => {
                   <Heart className="h-10 w-10" style={{ color: 'var(--landing-primary)' }} />
                 </div>
                 <h4 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: 'var(--landing-text)' }}>
-                  No gratitude entries yet
+                  No appreciation entries yet
                 </h4>
                 <p className="text-sm max-w-sm mx-auto mb-8 opacity-80" style={{ color: 'var(--landing-text)' }}>
-                  Capture what you're grateful for. Small entries add up to a clearer, calmer mindset.
+                  Capture what you appreciate. Small entries add up to an instant connection with feeling good.
                 </p>
                 <Button
                   onClick={() => setShowGratitudeDialog(true)}
@@ -1243,7 +1246,7 @@ const ManifestationDashboard: React.FC = () => {
                   </h4>
                 </div>
                 <p className="text-sm mb-4 opacity-85" style={{ color: 'var(--landing-text)' }}>
-                  Based on your recent activity: {goals.filter((g) => g.progress > 0).length} goal(s) in progress, {todos.filter((t) => t.completed).length} task(s) completed, {gratitudeEntries.length} gratitude entries, {journalEntries.length} journal entries.
+                  Based on your recent activity: {goals.filter((g) => g.progress > 0).length} goal(s) in progress, {todos.filter((t) => t.completed).length} task(s) completed, {gratitudeEntries.length} appreciation entries, {journalEntries.length} journal entries.
                 </p>
                 <div className="rounded-xl p-4 min-h-[100px]" style={{ backgroundColor: 'rgba(44, 157, 115, 0.08)', border: '1px solid var(--landing-border)' }}>
                   <p className="text-sm leading-relaxed italic opacity-90" style={{ color: 'var(--landing-text)' }}>

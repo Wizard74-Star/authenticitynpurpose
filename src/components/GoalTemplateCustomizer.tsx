@@ -211,7 +211,7 @@ const GoalTemplateCustomizer: React.FC<GoalTemplateCustomizerProps> = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Add to My Goals</Button>
+          <Button onClick={handleSave}>Add to My Goals–Vision Board</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -32,7 +32,7 @@ export function DataExport() {
     a.href = url;
     a.download = `goals-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    toast({ title: 'Goals exported to CSV!' });
+    toast({ title: 'Goals–Vision Board exported to CSV!' });
   };
 
   return (
@@ -45,7 +45,7 @@ export function DataExport() {
         </Button>
         <Button onClick={exportToCSV} variant="outline" className="w-full justify-start">
           <FileText className="mr-2 h-4 w-4" />
-          Export Goals (CSV)
+          Export Goals–Vision Board (CSV)
         </Button>
       </div>
     </Card>

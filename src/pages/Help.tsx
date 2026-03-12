@@ -61,7 +61,7 @@ const faqData: FAQCategory[] = [
   },
   {
     id: 'goals-tracking',
-    title: 'Goals & Tracking',
+    title: 'Goals–Vision Board & Tracking',
     icon: <Target className="w-6 h-6" />,
     description: 'Managing and tracking your goals',
     questions: [

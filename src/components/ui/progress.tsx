@@ -3,9 +3,9 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
 
-interface ProgressProps extends
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
-  variant?: "default" | "success" | "warning" | "error"
+interface ProgressProps
+  extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  variant?: "default" | "success" | "warning" | "error" | "goal"
 }
 
 const Progress = React.forwardRef<
@@ -16,7 +16,8 @@ const Progress = React.forwardRef<
     ref={ref}
     className={cn(
       "relative h-2 w-full overflow-hidden rounded-full bg-secondary/40",
-      className
+      variant === "goal" && "bg-sky-100/70 dark:bg-sky-900/40",
+      className,
     )}
     {...props}
   >
@@ -27,6 +28,8 @@ const Progress = React.forwardRef<
         variant === "success" && "bg-green-500",
         variant === "warning" && "bg-yellow-500",
         variant === "error" && "bg-destructive",
+        variant === "goal" &&
+          "bg-gradient-to-r from-sky-500 via-sky-400 to-indigo-500 shadow-sm",
       )}
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />

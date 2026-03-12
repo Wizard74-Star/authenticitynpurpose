@@ -266,7 +266,7 @@ const PersonalizedDashboard: React.FC = () => {
 
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="goals">Goals</TabsTrigger>
+            <TabsTrigger value="goals">Goals–Vision Board</TabsTrigger>
             <TabsTrigger value="aicoach">
               <Sparkles className="h-4 w-4 mr-1" />
               AI Coach

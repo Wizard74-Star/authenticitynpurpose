@@ -15,7 +15,7 @@ import familyConnectionImg1 from '@/assets/images/family-painting-floor_23-21479
 import familyConnectionImg2 from '@/assets/images/father-daughter-playing-with-planes_23-2147997391.jpg';
 
 const featureShowcaseItems = [
-  { img: goalsImg, title: 'Goals', desc: 'Set and track what matters to you.' },
+  { img: goalsImg, title: 'Goals–Vision Board', desc: 'Set and track what matters to you.' },
   { img: writtenPlanImg, title: 'Written plan', desc: 'Clarify your path in your own words.' },
   { img: calendarImg, title: 'Calendar', desc: 'Attach goals to time and reminders.' },
   { img: aiAnalysisImg, title: 'AI analysis', desc: 'Insights that help you improve.' },

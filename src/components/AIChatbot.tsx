@@ -346,7 +346,7 @@ export const AIChatbot: React.FC = () => {
                         />
                       </div>
                       <p className="text-sm font-medium mb-1" style={{ color: 'var(--chatbot-title-text)' }}>
-                        Hi! I’m your Goals assistant.
+                        Hi! I’m your Goals–Vision Board assistant.
                       </p>
                       <p className="text-xs opacity-70" style={{ color: 'var(--chatbot-bot-text)' }}>
                         Ask about features, pricing, or how to get started.

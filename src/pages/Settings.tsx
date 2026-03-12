@@ -20,7 +20,7 @@ const Settings: React.FC = () => {
     const state = location.state as { trialExpiredRedirect?: boolean } | null;
     if (state?.trialExpiredRedirect) {
       toast.warning('Your trial has ended', {
-        description: 'Subscribe to continue using Dashboard, Goals, Progress, Journals, and Calendar.',
+        description: 'Subscribe to continue using Dashboard, Goals–Vision Board, Progress, Journals, and Calendar.',
       });
       navigate('/settings', { replace: true, state: {} });
     }

@@ -137,12 +137,17 @@ const ProblemCard: React.FC<{ item: ProblemItem; index: number }> = ({ item, ind
           <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-5">
             <motion.div
               className="p-4 rounded-xl border-l-4"
-              style={{ borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.06)' }}
+              style={{ borderColor: '#1d4ed8', backgroundColor: 'rgba(37,99,235,0.06)' }}
               initial={{ opacity: 0, x: -8 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.4 + i * 0.1, duration: 0.6 }}
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest block mb-1.5" style={{ color: '#dc2626' }}>Problem</span>
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest block mb-1.5"
+                style={{ color: '#1d4ed8' }}
+              >
+                Problem
+              </span>
               <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--landing-text)' }}>{problemDesc}</p>
             </motion.div>
             <motion.div

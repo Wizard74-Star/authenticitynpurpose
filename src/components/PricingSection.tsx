@@ -85,7 +85,7 @@ const PricingSection: React.FC = () => {
     '0-10 progress tracking scale',
     'Vision board with photo uploads',
     'To-do list with rewards',
-    'Gratitude journal',
+    'Appreciation journal',
     'Life journal with photos',
     'Smart recommendations',
     'Email support',

@@ -10,6 +10,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useProgressAnalysis } from '@/hooks/useProgressAnalysis';
 import progressHeroImg from '@/assets/images/Life-is-in-Time-man.jpg';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
   Bar,
@@ -47,6 +48,7 @@ function endOfThisMonth(): Date {
 }
 
 const Progress: React.FC = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { goals, todos, gratitudeEntries, journalEntries, totalPoints, streak } = useManifestationDatabase();
   const { events } = useEvents();
@@ -231,7 +233,7 @@ const Progress: React.FC = () => {
   return (
     <AuthenticatedLayout>
       <div className="min-h-screen landing" style={{ backgroundColor: 'var(--landing-bg)', color: 'var(--landing-text)' }}>
-        {/* Hero */}
+        {/* Hero — light green overlay like Dashboard */}
         <section
           className="relative w-full overflow-hidden"
           style={{ minHeight: '240px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
@@ -240,21 +242,46 @@ const Progress: React.FC = () => {
             <img src={progressHeroImg} alt="" className="w-full h-full object-cover" />
             <div
               className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(160deg, rgba(15,23,42,0.75) 0%, rgba(26,107,79,0.82) 40%, rgba(44,157,115,0.78) 100%)',
-              }}
+              style={{ backgroundColor: 'var(--landing-accent)', opacity: 0.9 }}
+              aria-hidden
             />
           </div>
-          <HeroFloatingCircles variant="dark" />
+          <HeroFloatingCircles />
           <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-              <div className="mb-4 sm:mb-0">
-                <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                  Your progress at a glance
-                </h1>
-                <p className="mt-3 text-sm sm:text-base text-white/90 max-w-2xl leading-relaxed">
-                  See completion rate, weekly consistency, journal frequency, and goal activity. Get AI-powered insights to understand how you&apos;re doing and how to improve.
-                </p>
+              <div className="mb-4 sm:mb-0 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(-1)}
+                    className="rounded-xl hover:bg-[var(--landing-hover-bg)]"
+                    style={{ color: 'var(--landing-text)' }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/')}
+                    className="rounded-xl"
+                    style={{ borderColor: 'var(--landing-primary)', color: 'var(--landing-primary)' }}
+                  >
+                    Home
+                  </Button>
+                </div>
+                <div>
+                  <h1
+                    className="text-3xl sm:text-4xl font-bold tracking-tight bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-soft) 50%, #1a6b4f 100%)',
+                      WebkitBackgroundClip: 'text',
+                    }}
+                  >
+                    Your progress at a glance
+                  </h1>
+                  <p className="mt-3 text-sm sm:text-base max-w-2xl leading-relaxed opacity-90" style={{ color: 'var(--landing-text)' }}>
+                    See completion rate, weekly consistency, journal frequency, and goal activity. Get AI-powered insights to understand how you&apos;re doing and how to improve.
+                  </p>
+                </div>
               </div>
               <Button
                 onClick={handleGetAIInsights}
@@ -315,7 +342,7 @@ const Progress: React.FC = () => {
               <CardContent className="p-4 flex items-center gap-3">
                 <Heart className="h-8 w-8 text-pink-500" />
                 <div>
-                  <p className="text-xs font-medium opacity-70">Gratitude entries</p>
+                  <p className="text-xs font-medium opacity-70">Appreciation entries</p>
                   <p className="text-lg font-bold" style={{ color: 'var(--landing-text)' }}>{metrics.gratitudeThisMonth} this month</p>
                 </div>
               </CardContent>
@@ -372,7 +399,7 @@ const Progress: React.FC = () => {
                     <Bar dataKey="journal" stackId="a" fill={CHART_COLORS.journal} radius={[0, 0, 0, 0]} name="Journal">
                       <LabelList dataKey="journal" position="center" fill={CHART_COLORS.journal} fontSize={12} fontWeight={600} formatter={(v: number) => (v > 0 ? v : '')} />
                     </Bar>
-                    <Bar dataKey="gratitude" stackId="a" fill={CHART_COLORS.gratitude} radius={[0, 0, 0, 0]} name="Gratitude">
+                    <Bar dataKey="gratitude" stackId="a" fill={CHART_COLORS.gratitude} radius={[0, 0, 0, 0]} name="Appreciate">
                       <LabelList dataKey="gratitude" position="center" fill={CHART_COLORS.gratitude} fontSize={12} fontWeight={600} formatter={(v: number) => (v > 0 ? v : '')} />
                     </Bar>
                     <Bar dataKey="events" stackId="a" fill={CHART_COLORS.events} radius={[4, 4, 0, 0]} name="Events">

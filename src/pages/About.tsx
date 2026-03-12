@@ -18,7 +18,7 @@ const values = [
 const milestones = [
   { year: "2023", title: "The Vision", description: "Founded after realizing productivity apps were making people feel worse, not better." },
   { year: "Early 2024", title: "Beta Launch", description: "100 beta testers who shared our vision of growth without comparison." },
-  { year: "Mid 2024", title: "Gratitude", description: "Launched gratitude journaling—focus on what you have." },
+  { year: "Mid 2024", title: "Appreciation", description: "Launched appreciation journaling—focus on what you appreciate." },
   { year: "Late 2024", title: "10K Users", description: "10,000 active users across 50 countries." },
   { year: "2025", title: "5-Year Vision", description: "Long-term goal planning so you can dream bigger." },
 ];
@@ -26,7 +26,7 @@ const milestones = [
 const testimonials = [
   { name: "Jessica M.", role: "Entrepreneur", quote: "Finally an app that celebrates MY wins without everyone else's highlight reel. I feel motivated, not inadequate." },
   { name: "Robert K.", role: "Teacher", quote: "The 0-10 scale is brilliant. I see exactly where I am on each goal without the pressure of percentages." },
-  { name: "Priya S.", role: "Healthcare Worker", quote: "The gratitude journal changed my mindset. I wake up excited to document my journey." },
+  { name: "Priya S.", role: "Healthcare Worker", quote: "The appreciation journal changed my mindset. I wake up excited to document what I appreciate." },
 ];
 
 export default function About() {

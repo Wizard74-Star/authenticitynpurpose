@@ -26,7 +26,7 @@ export default function JournalTemplateLibrary({
 
   const categories = [
     { value: 'all', label: 'All Templates' },
-    { value: 'gratitude', label: '🙏 Gratitude' },
+    { value: 'gratitude', label: '🙏 Appreciate' },
     { value: 'goal-reflection', label: '🎯 Goal Reflection' },
     { value: 'daily-planning', label: '📅 Daily Planning' },
     { value: 'mood-tracking', label: '😊 Mood Tracking' },

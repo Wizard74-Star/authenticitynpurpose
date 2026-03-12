@@ -1,18 +1,14 @@
 /**
- * Default 10 gratitude journal sections (from product spec).
- * Users can write in each and add custom sections.
+ * Default 7 appreciation categories. Users can write in each and add custom sections.
  */
 export const GRATITUDE_DEFAULT_SECTIONS: { key: string; label: string }[] = [
-  { key: 'good-health', label: 'Good Health' },
-  { key: 'family-friends-loved-ones', label: 'Family, Friends and Loved ones' },
-  { key: 'food-water', label: 'Food & Water' },
-  { key: 'safe-shelter', label: 'Safe Shelter' },
-  { key: 'education-knowledge', label: 'Education & Knowledge' },
-  { key: 'freedom-of-choice', label: 'Freedom of Choice' },
-  { key: 'nature', label: 'Nature' },
-  { key: 'modern-convenience', label: 'Modern Convenience' },
-  { key: 'moments-of-joy', label: 'Moments of Joy' },
-  { key: 'personal-resilience', label: 'Personal Resilience' },
+  { key: 'life', label: 'Life' },
+  { key: 'health', label: 'Health' },
+  { key: 'family-friends', label: 'Family & Friends' },
+  { key: 'love-happiness-joy', label: 'Love Happiness & Joy' },
+  { key: 'shelter', label: 'Shelter' },
+  { key: 'food-drinks', label: 'Food & Drinks' },
+  { key: 'cherish', label: 'Cherish' },
 ];
 
 export function getGratitudeSectionLabel(key: string): string {

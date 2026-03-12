@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { Target, CheckCircle2, Plus, Heart, Award, Calendar, TrendingUp, Flame, DollarSign, RotateCcw, Sparkles, Clock, SparklesIcon } from 'lucide-react';
+import { Target, CheckCircle2, Plus, Heart, Award, Calendar, TrendingUp, Flame, DollarSign, RotateCcw, Sparkles, Clock, SparklesIcon, Flower2 } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -158,6 +158,25 @@ const DEFAULT_DEMO_GOALS = [
         { id: 's2', title: 'Automate savings', completed: true },
         { id: 's3', title: 'Reach $25k milestone', completed: true },
         { id: 's4', title: 'Hit $50k goal', completed: false }
+      ]
+    },
+    {
+      id: '8',
+      title: 'Deepen Spiritual Practice',
+      description: 'Mind, body & soul—church, yoga, meditation, and chakra balance',
+      progress: 4,
+      timeline: '90',
+      priority: 'medium',
+      category: 'Spiritual',
+      targetDate: '2026-06-01',
+      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+      budget: 0,
+      spent: 0,
+      steps: [
+        { id: 's1', title: 'Weekly worship or reflection', completed: true },
+        { id: 's2', title: 'Regular yoga or mindful movement', completed: true },
+        { id: 's3', title: 'Meditation and chakra awareness', completed: false },
+        { id: 's4', title: 'Sustain a balanced routine', completed: false }
       ]
     }
 ];
@@ -469,7 +488,7 @@ const DemoLayout: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
               <div className="flex items-center gap-3 min-w-0">
                 <Target className="h-8 w-8 shrink-0" style={{ color: 'var(--landing-primary)' }} />
-                <h2 className="text-2xl sm:text-3xl font-bold truncate min-w-0" style={{ color: 'var(--landing-text)' }}>Your Goals (0-10 Scale)</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold truncate min-w-0" style={{ color: 'var(--landing-text)' }}>Goals–Vision Board (0-10 Scale)</h2>
               </div>
               <DemoGoalDialog
                 trigger={
@@ -502,15 +521,23 @@ const DemoLayout: React.FC = () => {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-lg font-semibold" style={{ color: 'var(--landing-text)' }}>{goal.title}</h3>
-                      <span className="text-2xl font-bold" style={{ color: 'var(--landing-primary)' }}>{goal.progress}/10</span>
+                      <span className="text-2xl font-bold" style={{ color: '#1d4ed8' }}>{goal.progress}/10</span>
                     </div>
                     <p className="text-sm mb-3 opacity-90" style={{ color: 'var(--landing-text)' }}>{goal.description}</p>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      <Badge variant="outline" style={{ borderColor: 'var(--landing-primary)', color: 'var(--landing-primary)' }}>{timelineLabels[goal.timeline]}</Badge>
-                      <Badge style={{
-                        backgroundColor: goal.priority === 'high' ? 'rgba(220,38,38,0.12)' : goal.priority === 'medium' ? 'var(--landing-accent)' : 'var(--landing-accent)',
-                        color: goal.priority === 'high' ? '#dc2626' : 'var(--landing-primary)',
-                      }}>
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border border-sky-300 bg-sky-50 text-xs font-semibold text-sky-700 shadow-sm"
+                      >
+                        {timelineLabels[goal.timeline]}
+                      </Badge>
+                      <Badge
+                        className={`rounded-full text-xs font-semibold shadow-sm ${
+                          goal.priority === 'high'
+                            ? 'border border-red-200 bg-red-50 text-red-600'
+                            : 'border border-sky-200 bg-sky-50 text-sky-700'
+                        }`}
+                      >
                         {goal.priority}
                       </Badge>
                     </div>
@@ -536,7 +563,11 @@ const DemoLayout: React.FC = () => {
                         step={1}
                         className="w-full"
                       />
-                      <Progress value={goal.progress * 10} className="h-2" style={{ backgroundColor: 'var(--landing-accent)' }} />
+                      <Progress
+                        value={goal.progress * 10}
+                        className="h-2"
+                        style={{ backgroundColor: 'var(--landing-accent)' }}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -705,7 +736,7 @@ const DemoLayout: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Gratitude Journal — 10 sections + custom, works on computer, tablet, phone */}
+            {/* Appreciate — 7 categories + custom, works on computer, tablet, phone */}
             <GratitudeJournalSections
               date={todayIso()}
               entries={gratitudeEntries}
@@ -782,6 +813,58 @@ const DemoLayout: React.FC = () => {
 
           {/* Testimonials */}
           <DemoTestimonials />
+
+          {/* Spiritual, Mind Body & Soul */}
+          <div className="rounded-2xl p-6 sm:p-8 shadow-lg border min-w-0 overflow-hidden" style={{ backgroundColor: 'white', borderColor: 'var(--landing-border)' }}>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Flower2 className="h-7 w-7" style={{ color: 'var(--landing-primary)' }} />
+              <h3 className="text-xl sm:text-2xl font-bold text-center" style={{ color: 'var(--landing-text)' }}>Spiritual, Mind Body & Soul</h3>
+            </div>
+            <p className="text-sm opacity-90 text-center mb-6 max-w-2xl mx-auto" style={{ color: 'var(--landing-text)' }}>
+              Set goals for faith, wellness, and inner growth—church and community, yoga and mindful movement, chakras and meditation.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 min-w-0">
+              <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'var(--landing-border)' }}>
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=600&q=80"
+                    alt="People in church"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-semibold mb-1" style={{ color: 'var(--landing-text)' }}>Faith & Community</h4>
+                  <p className="text-sm opacity-90" style={{ color: 'var(--landing-text)' }}>Church, worship, and connection with your spiritual community.</p>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'var(--landing-border)' }}>
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80"
+                    alt="Woman doing yoga"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-semibold mb-1" style={{ color: 'var(--landing-text)' }}>Yoga & Mind-Body</h4>
+                  <p className="text-sm opacity-90" style={{ color: 'var(--landing-text)' }}>Yoga, mindful movement, and body-soul balance.</p>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'var(--landing-border)' }}>
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80"
+                    alt="Meditation and chakras"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-semibold mb-1" style={{ color: 'var(--landing-text)' }}>Chakras & Energy</h4>
+                  <p className="text-sm opacity-90" style={{ color: 'var(--landing-text)' }}>Meditation, chakra awareness, and inner energy.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
           {/* Feature Highlights */}
           <div className="rounded-2xl p-6 sm:p-8 shadow-lg border min-w-0 overflow-hidden" style={{ backgroundColor: 'white', borderColor: 'var(--landing-border)' }}>

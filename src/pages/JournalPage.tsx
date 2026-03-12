@@ -9,6 +9,9 @@ import JournalEntry from '@/components/JournalEntry';
 import JournalList from '@/components/JournalList';
 import JournalCalendar from '@/components/JournalCalendar';
 import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
+import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
+import { useNavigate } from 'react-router-dom';
+import journalHeroImg from '@/assets/images/Journal-bg.jpg';
 
 /** Map manifestation mood (DB) to JournalEntry/JournalList mood (UI) */
 const MOOD_TO_UI: Record<string, string> = {
@@ -47,6 +50,7 @@ function toListEntry(e: ManifestationJournalEntry): {
 }
 
 export default function JournalPage() {
+  const navigate = useNavigate();
   const { journalEntries, addJournalEntry, updateJournalEntry, deleteJournalEntry } = useManifestationDatabase();
   const entries = useMemo(() => journalEntries.map(toListEntry), [journalEntries]);
 
@@ -85,29 +89,71 @@ export default function JournalPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="min-h-screen" style={{ backgroundColor: 'var(--landing-bg)', color: 'var(--landing-text)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-8 w-8" style={{ color: 'var(--landing-primary)' }} />
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Journal</h1>
-                <p className="text-sm mt-0.5 opacity-80">
-                  Capture your days, reflect on your thoughts, and track how you feel.
-                </p>
-              </div>
-            </div>
-            {entries.length > 0 && !showNewEntry && !editingEntry && (
-              <Button
-                onClick={() => { setShowNewEntry(true); setActiveTab('write'); }}
-                className="font-medium shrink-0"
-                style={{ backgroundColor: 'var(--landing-primary)', color: 'white' }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New entry
-              </Button>
-            )}
+      <div className="min-h-screen landing" style={{ backgroundColor: 'var(--landing-bg)', color: 'var(--landing-text)' }}>
+        {/* Hero — light green overlay like Progress */}
+        <section
+          className="relative w-full overflow-hidden"
+          style={{ minHeight: '240px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
+        >
+          <div className="absolute inset-0">
+            <img src={journalHeroImg} alt="" className="w-full h-full object-cover" />
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: 'var(--landing-accent)', opacity: 0.9 }}
+              aria-hidden
+            />
           </div>
+          <HeroFloatingCircles />
+          <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              <div className="mb-4 sm:mb-0 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(-1)}
+                    className="rounded-xl hover:bg-[var(--landing-hover-bg)]"
+                    style={{ color: 'var(--landing-text)' }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/')}
+                    className="rounded-xl"
+                    style={{ borderColor: 'var(--landing-primary)', color: 'var(--landing-primary)' }}
+                  >
+                    Home
+                  </Button>
+                </div>
+                <div>
+                  <h1
+                    className="text-3xl sm:text-4xl font-bold tracking-tight bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-soft) 50%, #1a6b4f 100%)',
+                      WebkitBackgroundClip: 'text',
+                    }}
+                  >
+                    Journal
+                  </h1>
+                  <p className="mt-3 text-sm sm:text-base max-w-2xl leading-relaxed opacity-90" style={{ color: 'var(--landing-text)' }}>
+                    Capture your days, reflect on your thoughts, and track your mood. Browse entries by list or calendar—write about what went well, what you&apos;re grateful for, or what you want to accomplish next.
+                  </p>
+                </div>
+              </div>
+              {!showNewEntry && !editingEntry && (
+                <Button
+                  onClick={() => { setShowNewEntry(true); setActiveTab('write'); }}
+                  className="hero-cta-primary font-semibold rounded-xl shrink-0"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Write your Journal Entry
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
 
           {entries.length === 0 && !showNewEntry && !editingEntry ? (
             <div className="space-y-6">

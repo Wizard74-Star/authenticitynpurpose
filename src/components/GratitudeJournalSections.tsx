@@ -166,11 +166,11 @@ export function GratitudeJournalSections({
           <h3
             className={`font-semibold ${compact ? 'text-xl' : 'text-2xl'} ${textClass}`}
           >
-            Gratitude Journal
+            Appreciate
           </h3>
         </div>
         <p className={`text-sm opacity-90 mb-4 ${textClass}`}>
-          List 10 things: write in each section. Add more sections if you want. Works on computer, tablet, and phone.
+          Write in each of the 7 categories. Add custom sections if you want. Works on computer, tablet, and phone.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">

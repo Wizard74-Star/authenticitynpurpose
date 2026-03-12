@@ -407,7 +407,7 @@ User Data:
 - Calendar events: ${input.events.length} total (${input.events.filter((e) => e.status === 'completed').length} completed, ${input.events.filter((e) => e.status === 'missed').length} missed)
 - To-dos: ${input.todos.filter((t) => t.completed).length}/${input.todos.length} completed
 - Journal entries this month: ${input.journalCount}
-- Gratitude entries this month: ${input.gratitudeCount}
+- Appreciation entries this month: ${input.gratitudeCount}
 - Current streak: ${input.streak} days
 
 Respond in JSON only, with this exact structure (no markdown):

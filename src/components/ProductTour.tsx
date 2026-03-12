@@ -18,7 +18,7 @@ const tourSteps: TourStep[] = [
 
   {
     target: 'goals-section',
-    title: 'Set Goals on Your Timeline',
+    title: 'Set Goals–Vision Board on Your Timeline',
     description: 'Create 30, 60, 90 day goals, 1 year goals, and even 5-year visions. Track progress on a simple 0-10 scale.',
     position: 'bottom'
   },
@@ -26,7 +26,7 @@ const tourSteps: TourStep[] = [
   {
     target: 'gratitude-section',
     title: 'Practice Gratitude',
-    description: 'Record what you\'re thankful for each day. Studies show gratitude journaling increases happiness and well-being.',
+    description: 'Record what you appreciate each day. Appreciation is an instant connection with feeling good.',
     position: 'bottom'
   },
   {

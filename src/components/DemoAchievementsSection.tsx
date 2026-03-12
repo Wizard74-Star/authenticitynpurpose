@@ -17,7 +17,7 @@ const DEMO_ACHIEVEMENTS: Achievement[] = [
   { id: '1', title: 'Goal Setter', description: 'Set your first goal', icon: '🎯', earned: true, category: 'goals', rarity: 'common' },
   { id: '2', title: 'Week Warrior', description: 'Complete all tasks for 7 days', icon: '⚔️', earned: true, category: 'streaks', rarity: 'rare' },
   { id: '3', title: 'Halfway Hero', description: 'Reach 5/10 on any goal', icon: '🌟', earned: true, category: 'progress', rarity: 'common' },
-  { id: '4', title: 'Gratitude Guru', description: 'Write 10 gratitude entries', icon: '🙏', earned: false, category: 'tasks', rarity: 'common' },
+  { id: '4', title: 'Heart of Appreciation', description: 'Write 10 appreciation entries', icon: '🙏', earned: false, category: 'tasks', rarity: 'common' },
   { id: '5', title: 'Marathon Master', description: 'Complete a 90-day goal', icon: '🏆', earned: false, category: 'goals', rarity: 'epic' },
 ];
 

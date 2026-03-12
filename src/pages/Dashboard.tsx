@@ -535,10 +535,10 @@ export default function Dashboard() {
               animationDelay: '0.25s',
             }}
           >
-            Goals, steps, progress timeline, and daily to-dos — all in one place
+            Goals–Vision Board, steps, progress timeline, and daily to-dos — all in one place
           </p>
           <p className="text-xs sm:text-sm font-medium opacity-90 mb-6 sm:mb-8 animate-slide-up px-1" style={{ color: 'var(--landing-text)', animationDelay: '0.3s' }}>
-            Click a goal to see details • Use AI to generate to-dos • Add gratitude
+            Click a goal to see details • Use AI to generate to-dos • Add appreciation
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
             <Button size="lg" variant="default" className="hero-cta-primary" onClick={() => setOnboardingOpen(true)}>
@@ -616,7 +616,7 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Banner section (same as Goals page) */}
+      {/* Banner section (same as Goals–Vision Board page) */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8" style={{ backgroundColor: 'var(--landing-bg)' }}>
         <TrialBanner />
       </div>
@@ -643,7 +643,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Main content: Goals, To Do List, Calendar, Progress, Gratitude — click tab to go to section */}
+      {/* Main content: Goals–Vision Board, To Do List, Calendar, Progress, Appreciate — click tab to go to section */}
       <section id="dashboard-content" className="py-6 sm:py-12 px-3 sm:px-6 border-t" style={{ backgroundColor: 'var(--landing-bg)', borderColor: 'var(--landing-border)' }}>
         <div className="sticky top-14 sm:top-16 z-30 mb-6 sm:mb-10 -mx-3 sm:mx-0 px-2 sm:px-0">
           <div
@@ -653,7 +653,7 @@ export default function Dashboard() {
             role="tablist"
             aria-label="Dashboard sections"
           >
-            {(['Goals', 'To Do List', 'Calendar', 'Progress', 'Gratitude', 'Journal'] as const).map((label, i) => {
+            {(['Goals–Vision Board', 'To Do List', 'Calendar', 'Progress', 'Appreciate', 'Journal'] as const).map((label, i) => {
               const id = homeSectionIds[i];
               const isActive = activeHomeSection === id;
               return (
@@ -697,7 +697,7 @@ export default function Dashboard() {
                 <CardContent className="p-6 sm:p-8 text-center">
                   <Target className="h-10 w-10 mx-auto mb-3 opacity-50" style={{ color: 'var(--landing-primary)' }} />
                   <p className="font-medium text-sm sm:text-base" style={{ color: 'var(--landing-text)' }}>No active goals</p>
-                  <p className="text-xs sm:text-sm mt-1 px-2" style={{ color: 'var(--landing-text)', opacity: 0.7 }}>Add a goal or resume one from the Goals page.</p>
+                  <p className="text-xs sm:text-sm mt-1 px-2" style={{ color: 'var(--landing-text)', opacity: 0.7 }}>Add a goal or resume one from the Goals–Vision Board page.</p>
                   <Button onClick={() => setAddGoalOpen(true)} className="mt-4 rounded-xl min-h-9 touch-manipulation" size="sm">Add goal</Button>
                 </CardContent>
               </Card>
@@ -719,7 +719,7 @@ export default function Dashboard() {
                         <div className="flex justify-between items-start gap-2 mb-2">
                         <h3 className="text-base sm:text-lg font-semibold min-w-0 line-clamp-2" style={{ color: 'var(--landing-text)' }}>{goal.title}</h3>
                         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                          <span className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--landing-primary)' }}>{goal.progress}/10</span>
+                          <span className="text-xl sm:text-2xl font-bold" style={{ color: '#1d4ed8' }}>{goal.progress}/10</span>
                           <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 touch-manipulation" onClick={(e) => { e.stopPropagation(); setEditGoal(goal); }} title="Edit goal">
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -730,36 +730,80 @@ export default function Dashboard() {
                       </div>
                       <p className="text-sm mb-3 opacity-90" style={{ color: 'var(--landing-text)' }}>{goal.description}</p>
                       <div className="flex flex-wrap gap-2 mb-3">
-                        <Badge variant="outline" style={{ borderColor: 'var(--landing-primary)', color: 'var(--landing-primary)' }}>{timelineLabels[goal.timeline] ?? goal.timeline}</Badge>
-                        <Badge style={{ backgroundColor: goal.priority === 'high' ? 'rgba(220,38,38,0.12)' : 'var(--landing-accent)', color: goal.priority === 'high' ? '#dc2626' : 'var(--landing-primary)' }}>{goal.priority}</Badge>
+                        <Badge
+                          variant="outline"
+                          className="rounded-full border border-sky-300 bg-sky-50 text-xs font-semibold text-sky-700 shadow-sm"
+                        >
+                          {timelineLabels[goal.timeline] ?? goal.timeline}
+                        </Badge>
+                        <Badge
+                          className={`rounded-full text-xs font-semibold shadow-sm ${
+                            goal.priority === 'high'
+                              ? 'border border-red-200 bg-red-50 text-red-600'
+                              : 'border border-sky-200 bg-sky-50 text-sky-700'
+                          }`}
+                        >
+                          {goal.priority}
+                        </Badge>
                         {goal.status === 'paused' && <Badge variant="outline" className="border-amber-500 text-amber-700">Paused</Badge>}
                         {goal.status === 'completed' && <Badge className="bg-green-100 text-green-800 border-0">Completed</Badge>}
                       </div>
                       <div className="flex flex-wrap gap-1.5 mb-3 touch-manipulation" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="sm" className="rounded-lg text-xs min-h-9" onClick={() => setSelectedGoalId(goal.id)} title="Open goal">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full text-xs min-h-9 border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
+                          onClick={() => setSelectedGoalId(goal.id)}
+                          title="Open goal"
+                        >
                           <LogIn className="h-3.5 w-3 mr-1" /> Enter
                         </Button>
                         {(goal.status === 'active' || !goal.status) && (
                           <>
-                            <Button variant="outline" size="sm" className="rounded-lg text-xs min-h-9" onClick={() => updateGoal(goal.id, { status: 'paused' })} title="Pause goal">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-full text-xs min-h-9 border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-800"
+                              onClick={() => updateGoal(goal.id, { status: 'paused' })}
+                              title="Pause goal"
+                            >
                               <Pause className="h-3.5 w-3 mr-1" /> Pause
                             </Button>
-                            <Button variant="outline" size="sm" className="rounded-lg text-xs min-h-9" onClick={() => updateGoal(goal.id, { status: 'completed', progress: 10 })} title="Mark complete">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-full text-xs min-h-9 border-sky-500 bg-sky-500 text-white hover:bg-sky-600 hover:border-sky-600 shadow-sm"
+                              onClick={() => updateGoal(goal.id, { status: 'completed', progress: 10 })}
+                              title="Mark complete"
+                            >
                               <CheckCircle className="h-3.5 w-3 mr-1" /> Complete
                             </Button>
                           </>
                         )}
                         {goal.status === 'paused' && (
-                          <Button variant="outline" size="sm" className="rounded-lg text-xs min-h-9" onClick={() => updateGoal(goal.id, { status: 'active' })} title="Resume goal">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full text-xs min-h-9 border-sky-500 bg-sky-500 text-white hover:bg-sky-600 hover:border-sky-600 shadow-sm"
+                            onClick={() => updateGoal(goal.id, { status: 'active' })}
+                            title="Resume goal"
+                          >
                             <Play className="h-3.5 w-3 mr-1" /> Resume
                           </Button>
                         )}
                       </div>
                       <div className="space-y-2 mb-3" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-xs font-medium opacity-80" style={{ color: 'var(--landing-text)' }}>
+                        <p
+                          className="text-xs font-semibold tracking-wide"
+                          style={{ color: '#1d4ed8' }}
+                        >
                           Progress {goal.progress}/10 — update in goal detail
                         </p>
-                        <Progress value={goal.progress * 10} className="h-2" style={{ backgroundColor: 'var(--landing-accent)' }} />
+                        <Progress
+                          value={goal.progress * 10}
+                          className="h-2"
+                          style={{ backgroundColor: 'var(--landing-accent)' }}
+                        />
                       </div>
                       {(goal.budget != null && goal.budget > 0) && (
                         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
@@ -1086,14 +1130,14 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Gratitude */}
+          {/* Appreciate */}
           <section id="gratitude" className="scroll-mt-24 sm:scroll-mt-28">
             <GratitudeJournalSections
               date={todayIso}
               entries={gratitudeEntries}
               onSaveSection={(date, sectionKey, sectionLabel, content) => {
                 updateGratitudeSectionByKey(date, sectionKey, sectionLabel, content).then(() => {
-                  if (content) toast({ title: 'Saved', description: 'Gratitude saved.' });
+                  if (content) toast({ title: 'Saved', description: 'Appreciation saved.' });
                 });
               }}
               onRemoveCustomSection={(date, sectionKey) => deleteGratitudeBySection(date, sectionKey)}
@@ -1101,7 +1145,7 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* Journal — life journal (separate from gratitude) */}
+          {/* Journal — life journal (separate from appreciation) */}
           <section id="journal" className="scroll-mt-24 sm:scroll-mt-28">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -1146,7 +1190,7 @@ export default function Dashboard() {
               <Card className="p-6 sm:p-8 rounded-lg sm:rounded-xl border text-center" style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}>
                 <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-60" style={{ color: 'var(--landing-primary)' }} />
                 <p className="text-sm mb-4" style={{ color: 'var(--landing-text)', opacity: 0.9 }}>
-                  Capture your day and reflect. Your journal is separate from gratitude—use it for thoughts, experiences, or anything you want to remember.
+                  Capture your day and reflect. Your journal is separate from appreciation—use it for thoughts, experiences, or anything you want to remember.
                 </p>
                 <Button
                   className="rounded-xl hero-cta-primary"
@@ -1541,12 +1585,12 @@ function GratitudeDialog({
       <DialogContent className="rounded-2xl border-2 max-w-md" style={{ borderColor: 'var(--landing-border)' }}>
         <DialogHeader>
           <DialogTitle style={{ color: 'var(--landing-text)' }}>
-            Gratitude for {new Date(selectedIso + 'T12:00:00').toLocaleDateString('en-US')}
+            What I appreciate — {new Date(selectedIso + 'T12:00:00').toLocaleDateString('en-US')}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <Textarea
-            placeholder="What are you grateful for today?"
+            placeholder="What do you appreciate today?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={4}

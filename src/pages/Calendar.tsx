@@ -15,6 +15,7 @@ import {
   Heart,
   BookOpen,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
@@ -47,6 +48,7 @@ const monthNames = [
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function Calendar() {
+  const navigate = useNavigate();
   const { events, loading, addEvent, updateEvent, deleteEvent, refresh } = useEvents();
   const { createReminder } = useReminders();
   const { goals, todos, gratitudeEntries, journalEntries } = useManifestationDatabase();
@@ -257,7 +259,7 @@ export default function Calendar() {
   return (
     <AuthenticatedLayout>
       <div className="min-h-screen landing" style={{ backgroundColor: 'var(--landing-bg)', color: 'var(--landing-text)' }}>
-        {/* Hero — full width, modern style, point animation */}
+        {/* Hero — light green overlay like Dashboard */}
         <section
           className="relative w-full overflow-hidden"
           style={{ minHeight: '240px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
@@ -266,21 +268,46 @@ export default function Calendar() {
             <img src={calendarImg} alt="" className="w-full h-full object-cover" />
             <div
               className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(160deg, rgba(15,23,42,0.75) 0%, rgba(26,107,79,0.82) 40%, rgba(44,157,115,0.78) 100%)',
-              }}
+              style={{ backgroundColor: 'var(--landing-accent)', opacity: 0.9 }}
+              aria-hidden
             />
           </div>
-          <HeroFloatingCircles variant="dark" />
+          <HeroFloatingCircles />
           <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-              <div className="mb-4 sm:mb-0">
-                <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                  Your life in time
-                </h1>
-                <p className="mt-3 text-sm sm:text-base text-white/90 max-w-2xl leading-relaxed">
-                  View your month or day at a glance. Each day shows schedule count, to-dos, gratitude, and journal—click a day for a quick overview. Add events, or import and export .ics to sync with other calendars.
-                </p>
+              <div className="mb-4 sm:mb-0 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(-1)}
+                    className="rounded-xl hover:bg-[var(--landing-hover-bg)]"
+                    style={{ color: 'var(--landing-text)' }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/')}
+                    className="rounded-xl"
+                    style={{ borderColor: 'var(--landing-primary)', color: 'var(--landing-primary)' }}
+                  >
+                    Home
+                  </Button>
+                </div>
+                <div>
+                  <h1
+                    className="text-3xl sm:text-4xl font-bold tracking-tight bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-soft) 50%, #1a6b4f 100%)',
+                      WebkitBackgroundClip: 'text',
+                    }}
+                  >
+                    Your life in time
+                  </h1>
+                  <p className="mt-3 text-sm sm:text-base max-w-2xl leading-relaxed opacity-90" style={{ color: 'var(--landing-text)' }}>
+                    View your month or day at a glance. Each day shows schedule count, to-dos, appreciation, and journal—click a day for a quick overview. Add events, or import and export .ics to sync with other calendars.
+                  </p>
+                </div>
               </div>
               <div className="flex flex-wrap gap-3 shrink-0">
                 <input ref={fileInputRef} type="file" accept=".ics" onChange={handleImport} className="hidden" />
@@ -422,7 +449,7 @@ export default function Calendar() {
                               <Target className="h-3 w-3" /> {daySteps.length}
                             </span>
                           )}
-                          {gratitude && <Heart className="h-3 w-3 text-pink-500" title="Gratitude set" />}
+                          {gratitude && <Heart className="h-3 w-3 text-pink-500" title="Appreciate set" />}
                           {journal && <BookOpen className="h-3 w-3 text-blue-500" title="Journal set" />}
                         </div>
                       </div>
@@ -488,7 +515,7 @@ export default function Calendar() {
                     {dayGratitude && (
                       <div>
                         <h4 className="text-xs font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--landing-text)' }}>
-                          <Heart className="h-3.5 w-3.5 text-pink-500" /> Gratitude Journal
+                          <Heart className="h-3.5 w-3.5 text-pink-500" /> Appreciate
                         </h4>
                         <p className="text-sm line-clamp-2" style={{ color: 'var(--landing-text)' }}>{dayGratitude.content || '—'}</p>
                       </div>
@@ -736,7 +763,7 @@ function DayOverviewModal({
           {gratitude && (
             <div className="rounded-xl p-3 border" style={{ borderColor: 'var(--landing-border)', backgroundColor: 'rgba(236,72,153,0.08)' }}>
               <h4 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--landing-text)' }}>
-                <Heart className="h-4 w-4 text-pink-500" /> Gratitude Journal
+                <Heart className="h-4 w-4 text-pink-500" /> Appreciate
               </h4>
               <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--landing-text)' }}>{gratitude.content || '—'}</p>
             </div>
@@ -812,7 +839,7 @@ function DayOverviewModal({
             <span>·</span>
             <span>{todosOnDate.length} To-Do</span>
             {stepsDue.length > 0 && <span>· {stepsDue.length} step{stepsDue.length !== 1 ? 's' : ''} due</span>}
-            {gratitude && <span>· Gratitude ✓</span>}
+            {gratitude && <span>· Appreciate ✓</span>}
             {journal && <span>· Journal ✓</span>}
           </div>
         </div>
