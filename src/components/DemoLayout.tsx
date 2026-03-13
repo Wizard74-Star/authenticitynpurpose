@@ -18,6 +18,7 @@ import { DemoAnalyticsSection } from '@/components/DemoAnalyticsSection';
 import DemoProgressTimeline from '@/components/DemoProgressTimeline';
 import PricingSection from '@/components/PricingSection';
 import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import { DemoOnboardingModals } from '@/components/DemoOnboardingModals';
 import { getMockTodosForDay, type DemoGoalGenerated } from '@/data/demoOnboardingMockData';
 import { GratitudeJournalSections } from '@/components/GratitudeJournalSections';
@@ -205,14 +206,8 @@ const DEFAULT_DEMO_TASKS: DemoTask[] = [
   { id: '10', title: 'Plan next day priorities', completed: false, points: 5, priority: 'medium', day: 'tomorrow', timeSlot: '21:00' },
 ];
 
-const todayIso = () => new Date().toISOString().split('T')[0];
-const tomorrowIso = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0];
-};
-
 const DemoLayout: React.FC = () => {
+  const { todayISO: todayIso, tomorrowISO: tomorrowIso } = useTimezone();
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
@@ -313,8 +308,8 @@ const DemoLayout: React.FC = () => {
   };
 
   const tasksByDay = useMemo(() => {
-    const today = todayIso();
-    const tomorrow = tomorrowIso();
+    const today = todayIso;
+    const tomorrow = tomorrowIso;
     const byDay: Record<string, DemoTask[]> = { today: [], tomorrow: [] };
     demoTasks.forEach(t => {
       const d = t.day ?? 'today';
@@ -738,7 +733,7 @@ const DemoLayout: React.FC = () => {
 
             {/* Appreciate — 7 categories + custom, works on computer, tablet, phone */}
             <GratitudeJournalSections
-              date={todayIso()}
+              date={todayIso}
               entries={gratitudeEntries}
               onSaveSection={(date, sectionKey, sectionLabel, content) => {
                 setGratitudeEntries(prev => {

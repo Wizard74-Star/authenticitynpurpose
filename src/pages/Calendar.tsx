@@ -32,13 +32,7 @@ import type { ManifestationGoal, ManifestationTodo } from '@/hooks/useManifestat
 import calendarImg from '@/assets/images/Attach-goals-to-time.jpg';
 import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
 import { TrialBanner } from '@/components/TrialBanner';
-
-function toISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -49,6 +43,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function Calendar() {
   const navigate = useNavigate();
+  const { todayISO, toISODate } = useTimezone();
   const { events, loading, addEvent, updateEvent, deleteEvent, refresh } = useEvents();
   const { createReminder } = useReminders();
   const { goals, todos, gratitudeEntries, journalEntries } = useManifestationDatabase();
@@ -245,14 +240,7 @@ export default function Calendar() {
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const isToday = (day: number) => {
-    const t = new Date();
-    return (
-      day === t.getDate() &&
-      currentDate.getMonth() === t.getMonth() &&
-      currentDate.getFullYear() === t.getFullYear()
-    );
-  };
+  const isToday = (day: number) => getDayIso(day) === todayISO;
 
   const formatHour = (h: number) => (h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`);
 
@@ -714,6 +702,7 @@ function DayOverviewModal({
   onNewSchedule: () => void;
   onEventClick: (ev: CalendarEventData) => void;
 }) {
+  const { toISODate } = useTimezone();
   const dayIso = toISODate(date);
   const eventsOnDate = events.filter((e) => toISODate(new Date(e.startTime)) === dayIso);
   const eventsWithLanes = useMemo(() => assignEventLanes(eventsOnDate), [eventsOnDate]);

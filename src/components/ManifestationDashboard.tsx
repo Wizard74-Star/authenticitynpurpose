@@ -25,6 +25,7 @@ import { EventDialog } from './EventDialog';
 import type { CalendarEventData } from '@/hooks/useEvents';
 import calendarHeroImg from '@/assets/images/Attach-goals-to-time.jpg';
 import { useToast } from '@/hooks/use-toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
 
 interface Goal {
@@ -127,7 +128,7 @@ const ManifestationDashboard: React.FC = () => {
     if (goalsPage > goalsTotalPages && goalsTotalPages >= 1) setGoalsPage(goalsTotalPages);
   }, [goalsTotalPages, goalsPage]);
   const [newTodo, setNewTodo] = useState({ title: '', scheduledDate: '' as string });
-  const todayIso = new Date().toISOString().split('T')[0];
+  const { todayISO: todayIso } = useTimezone();
 
   type TodoFilter = 'today' | 'all' | 'draft' | 'day' | 'month' | 'year';
   const [todoFilter, setTodoFilter] = useState<TodoFilter>('today');

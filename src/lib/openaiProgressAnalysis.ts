@@ -674,14 +674,14 @@ export interface AIGeneratedGoal {
   imageSearchQuery?: string;
 }
 
-const toISODate = (d: Date) => d.toISOString().split('T')[0];
+import { getTodayISO } from '@/lib/timezoneUtils';
 
 export async function generateGoalsWithOpenAI(
   occupation: string,
   aspiration: string,
   description: string,
 ): Promise<AIGeneratedGoal[] | null> {
-  const today = toISODate(new Date());
+  const today = getTodayISO();
 
   const prompt = `You are a personal development coach. Based on the user's current occupation and aspiration, generate 1-3 concrete, achievable goals with steps.
 

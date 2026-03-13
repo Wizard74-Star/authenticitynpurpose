@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { analyzeProgressImage } from '@/lib/aiImageAnalysis';
 import { useToast } from '@/hooks/use-toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 export interface GoalDetailViewProps {
   goal: ManifestationGoal;
@@ -155,8 +156,8 @@ export default function GoalDetailView({ goal, onBack, updateGoal, onDeleteGoal,
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [currentGoal.steps]);
 
+  const { todayISO: todayIso } = useTimezone();
   const handleStepToggle = async (stepId: string) => {
-    const todayIso = new Date().toISOString().split('T')[0];
     const steps = currentGoal.steps ?? [];
     const updatedSteps: GoalStep[] = steps.map((step) =>
       step.id === stepId

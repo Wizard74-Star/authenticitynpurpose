@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { StorageModeProvider } from "@/contexts/StorageModeContext";
+import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { Loader2 } from "lucide-react";
@@ -65,6 +66,7 @@ const App = () => (
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <ScrollToTop />
             <StorageModeProvider>
+            <TimezoneProvider>
             <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -96,6 +98,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            </TimezoneProvider>
             </StorageModeProvider>
           </BrowserRouter>
         </AuthProvider>

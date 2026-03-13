@@ -4,36 +4,34 @@ import { Button } from '@/components/ui/button';
 import { Leaf, Gift, Flame, X } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useNavigate } from 'react-router-dom';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 const STORAGE_KEY = 'goals_app_trial_banner_dismissed_date';
 
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-function isDismissedToday(): boolean {
+function isDismissedToday(todayISO: string): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === getTodayKey();
+    return localStorage.getItem(STORAGE_KEY) === todayISO;
   } catch {
     return false;
   }
 }
 
-function dismissForToday() {
+function dismissForToday(todayISO: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, getTodayKey());
+    localStorage.setItem(STORAGE_KEY, todayISO);
   } catch {}
 }
 
 export const TrialBanner = () => {
   const { isTrial, trialDaysRemaining, isPremium } = useSubscription();
+  const { todayISO } = useTimezone();
   const navigate = useNavigate();
-  const [hidden, setHidden] = useState(() => isDismissedToday());
+  const [hidden, setHidden] = useState(() => isDismissedToday(todayISO));
 
   const handleClose = useCallback(() => {
-    dismissForToday();
+    dismissForToday(todayISO);
     setHidden(true);
-  }, []);
+  }, [todayISO]);
 
   const inviteCodeLine = (
     <p className="text-sm mt-2 text-muted-foreground">

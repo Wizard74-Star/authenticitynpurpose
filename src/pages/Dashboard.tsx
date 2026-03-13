@@ -51,6 +51,7 @@ import type { ManifestationGoal, ManifestationTodo, ManifestationGratitude, Mani
 import dashboardHeroImg from '@/assets/images/Life-is-in-Time-woman.jpg';
 import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
 import { useToast } from '@/hooks/use-toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import GoalDetailView from '@/components/GoalDetailView';
 import { AddGoalDialog } from '@/components/AddGoalDialog';
 import { EditGoalDialog } from '@/components/EditGoalDialog';
@@ -72,11 +73,7 @@ import { getDefaultImageForCategory } from '@/data/demoOnboardingMockData';
 import { generateGoalsWithOpenAI, recommendImagesForGoals, generateTodosWithOpenAI, getActiveProvider } from '@/lib/openaiProgressAnalysis';
 import demoHeroBg from '@/assets/images/Demo-bg.png';
 
-function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
-
-function isSameDay(a: Date, b: Date): boolean {
+function isSameDay(a: Date, b: Date, toISODate: (d: Date) => string): boolean {
   return toISODate(a) === toISODate(b);
 }
 
@@ -96,6 +93,7 @@ function generateRecommendations(timeline: string): string[] {
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { todayISO: todayIso, tomorrowISO: tomorrowIso, toISODate } = useTimezone();
   const [dashboardHeroUrl, setDashboardHeroUrl] = useState(dashboardHeroImg);
   const [heroEditOpen, setHeroEditOpen] = useState(false);
   const [heroInputUrl, setHeroInputUrl] = useState('');
@@ -190,13 +188,6 @@ export default function Dashboard() {
   const [newTaskDay, setNewTaskDay] = useState<'today' | 'tomorrow'>('today');
   const [newTaskTimeSlot, setNewTaskTimeSlot] = useState('');
   const [newTaskGroup, setNewTaskGroup] = useState('');
-
-  const todayIso = toISODate(new Date());
-  const tomorrowIso = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return toISODate(d);
-  })();
 
   useEffect(() => {
     if (goals.length === 0 && !localStorage.getItem('goals_app_dashboard_onboarding_done')) {
@@ -332,7 +323,7 @@ export default function Dashboard() {
   const { createReminder } = useReminders();
 
   const eventsOnDate = useMemo(
-    () => events.filter((e) => isSameDay(e.startTime, selectedDate)),
+    () => events.filter((e) => isSameDay(e.startTime, selectedDate, toISODate)),
     [events, selectedDate]
   );
 
@@ -1084,6 +1075,7 @@ export default function Dashboard() {
                   onEventClick={(id) => { const e = events.find((ev) => ev.id === id); if (e) setEditingEvent(e); setEventDialogOpen(true); }}
                   selectedEventId={editingEvent?.id}
                   maxHeight="min(320px, 50vh)"
+                  showCurrentTime={selectedIso === todayIso}
                   emptyMessage="No events this day. Click a time slot or Add event to schedule."
                 />
               </CardContent>
@@ -1438,6 +1430,7 @@ function OverviewCard({
 
 function TasksTab({
   selectedIso,
+  todayIso,
   todosOnDate,
   addTodo,
   toggleTodo,
@@ -1445,6 +1438,7 @@ function TasksTab({
   toast,
 }: {
   selectedIso: string;
+  todayIso: string;
   todosOnDate: ManifestationTodo[];
   addTodo: (t: Omit<ManifestationTodo, 'id' | 'createdAt'>) => void | Promise<void>;
   toggleTodo: (id: string) => void | Promise<void>;
@@ -1453,7 +1447,7 @@ function TasksTab({
 }) {
   const [title, setTitle] = useState('');
   const [groupName, setGroupName] = useState('');
-  const today = toISODate(new Date());
+  const today = todayIso;
 
   const handleAdd = () => {
     if (!title.trim()) return;

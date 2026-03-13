@@ -7,6 +7,7 @@ import { ArrowLeft, Calendar, Target, TrendingUp, CheckCircle2, DollarSign, Ligh
 import VisualProgressTimeline, { TaggedImage } from './VisualProgressTimeline';
 import { analyzeProgressImage } from '@/lib/aiImageAnalysis';
 import { getMockGoalInsights } from '@/data/demoOnboardingMockData';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface Step {
   id: string;
@@ -104,8 +105,8 @@ export default function DemoGoalDetailView({ goal, onBack, onUpdateGoal }: DemoG
   const handleAddImage = (image: TaggedImage) => setTaggedImages(prev => [...prev, image]);
   const handleRemoveImage = (id: string) => setTaggedImages(prev => prev.filter(img => img.id !== id));
 
+  const { todayISO: todayIso } = useTimezone();
   const handleStepToggle = (stepId: string) => {
-    const todayIso = new Date().toISOString().split('T')[0];
     const updatedSteps = currentGoal.steps?.map(step =>
       step.id === stepId ? { ...step, completed: !step.completed, completedAt: !step.completed ? todayIso : undefined } : step
     );

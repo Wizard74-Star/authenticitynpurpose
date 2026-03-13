@@ -109,7 +109,8 @@ export const parseICS = (icsContent: string): CalendarEvent[] => {
   return events;
 };
 
-// Parse date from ICS format to Date object
+// Parse date from ICS format to Date object.
+// If the value ends with Z it's UTC; otherwise treat as local (floating) time so the calendar day is correct.
 const parseDateFromICS = (icsDate: string): Date => {
   const year = parseInt(icsDate.substring(0, 4));
   const month = parseInt(icsDate.substring(4, 6)) - 1;
@@ -117,8 +118,10 @@ const parseDateFromICS = (icsDate: string): Date => {
   const hours = parseInt(icsDate.substring(9, 11));
   const minutes = parseInt(icsDate.substring(11, 13));
   const seconds = parseInt(icsDate.substring(13, 15));
-  
-  return new Date(Date.UTC(year, month, day, hours, minutes, seconds));
+  if (icsDate.endsWith('Z')) {
+    return new Date(Date.UTC(year, month, day, hours, minutes, seconds));
+  }
+  return new Date(year, month, day, hours, minutes, seconds);
 };
 
 // Download .ics file
