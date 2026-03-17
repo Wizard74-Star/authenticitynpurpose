@@ -50,7 +50,7 @@ const DemoAppLayout: React.FC<DemoAppLayoutProps> = ({ onBack }) => {
     {
       id: '4',
       title: 'Deepen Spiritual Practice',
-      description: 'Meditate daily and connect with inner peace',
+      description: 'Mind, body and soul-Faith, prayer & meditation, fulfill your calling',
       progress: 45,
       category: 'spiritual',
       timeframe: '3 months',

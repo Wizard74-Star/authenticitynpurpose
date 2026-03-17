@@ -833,8 +833,8 @@ export default function Dashboard() {
                         </p>
                         <Progress
                           value={goal.progress * 10}
-                          className="h-2"
-                          style={{ backgroundColor: 'var(--landing-accent)' }}
+                          variant="success"
+                          className="h-2 bg-orange-200/80 dark:bg-orange-900/30"
                         />
                       </div>
                       {(goal.budget != null && goal.budget > 0) && (
@@ -856,7 +856,7 @@ export default function Dashboard() {
                             <p className="text-xs font-medium opacity-80" style={{ color: 'var(--landing-text)' }}>
                               Budget progress — {Math.min(100, Math.round(((goal.spent ?? 0) / goal.budget) * 100))}% used
                             </p>
-                            <Progress value={Math.min(100, ((goal.spent ?? 0) / goal.budget) * 100)} className="h-2" style={{ backgroundColor: 'var(--landing-accent)' }} />
+                            <Progress value={Math.min(100, ((goal.spent ?? 0) / goal.budget) * 100)} variant="success" className="h-2" style={{ backgroundColor: 'var(--landing-accent)' }} />
                           </div>
                         </div>
                       )}

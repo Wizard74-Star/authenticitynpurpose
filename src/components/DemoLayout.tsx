@@ -164,7 +164,7 @@ const DEFAULT_DEMO_GOALS = [
     {
       id: '8',
       title: 'Deepen Spiritual Practice',
-      description: 'Mind, body & soul—church, yoga, meditation, and chakra balance',
+      description: 'Mind, body and soul-Faith, prayer & meditation, fulfill your calling',
       progress: 4,
       timeline: '90',
       priority: 'medium',
