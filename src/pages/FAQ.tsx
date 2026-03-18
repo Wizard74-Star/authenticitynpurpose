@@ -135,13 +135,13 @@ const FAQ: React.FC = () => {
             Everything you need to know
           </div>
           <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] animate-slide-up"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-gray-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] animate-slide-up"
             style={{ animationDelay: '0.1s' }}
           >
             Frequently Asked Questions
           </h1>
           <p
-            className="text-lg sm:text-xl mb-10 font-semibold max-w-2xl mx-auto text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] animate-slide-up"
+            className="text-lg sm:text-xl mb-10 font-semibold max-w-2xl mx-auto text-gray-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)] animate-slide-up"
             style={{ animationDelay: '0.2s' }}
           >
             Clear, honest answers about our personal growth system—what it is, how it works, and how we help you be the person you want to become.

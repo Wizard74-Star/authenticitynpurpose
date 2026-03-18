@@ -13,11 +13,11 @@ import stepImg2 from '@/assets/images/Write-your-goals-and-development-plan.jpg'
 import stepImg3 from '@/assets/images/Attach-goals-to-time.jpg';
 import stepImg4 from '@/assets/images/AI-analysis.jpg';
 import successPhoneImg from '@/assets/images/hand-holding-smartphone-displaying-financial-app-with-quotsuccessquot-notification_1298745-37939.jpg';
-import problemImg1 from '@/assets/images/happy-man.jpg';
-import problemImg2 from '@/assets/images/Set-Goals-Woman.jpg';
-import problemImg3 from '@/assets/images/Tomorrow-Goal.jpg';
-import problemImg4 from '@/assets/images/family-connection.jpg';  
-import problemImg5 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
+// import problemImg1 from '@/assets/images/happy-man.jpg';
+// import problemImg2 from '@/assets/images/Set-Goals-Woman.jpg';
+// import problemImg3 from '@/assets/images/Tomorrow-Goal.jpg';
+// import problemImg4 from '@/assets/images/family-connection.jpg';  
+// import problemImg5 from '@/assets/images/Get-AI-feedback-on-your-progress.jpg';
 
 const heroSlides = [
   { bg: landingBg1, headline: 'Find Your Direction!' },
@@ -299,13 +299,13 @@ export const LandingContent: React.FC = () => {
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [slideTick, setSlideTick] = useState(0);
 
-  const problemItems: ProblemItem[] = [
-    { image: problemImg1, title: 'No Trolls', stats: [{ value: '100%', label: 'PRIVATE' }, { value: '0', label: 'FEED' }, { value: '1', label: 'YOUR JOURNEY' }], problemDesc: 'Your feed becomes a highlight reel of everyone else. You compare your behind-the-scenes to their best moments—and it drains you.', solution: 'Private space, no feed. Your journey stays yours—no highlight reels, no comparison.', basicClosing: 'Comparison collapses your identity.' },
-    { image: problemImg2, title: "Apps that don't change your life", stats: [{ value: '1', label: 'SYSTEM' }, { value: 'Goals', label: '+ PLAN' }, { value: 'Full', label: 'TRANSFORMATION' }], problemDesc: "Another to-do app, another habit tracker. They organize tasks but don't help you become someone new. You need a development system, not another inbox.", solution: 'Full development system: goals + written plan + calendar + AI feedback. One place to be the person you want to become.', basicClosing: 'Transformation, not another inbox.' },
-    { image: problemImg3, title: 'Goals you set and forget', stats: [{ value: 'Written', label: 'PLAN' }, { value: 'Calendar', label: 'REVISIT' }, { value: 'Goals', label: 'STICK' }], problemDesc: 'New Year resolutions. Big ideas in a notes app. Without a written plan and a place to revisit them, goals fade by February.', solution: "Written plan + calendar + revisit. Attach goals to time with reminders so they don't fade.", basicClosing: 'Steps & Due Dates = 91% Progress.' },
-    { image: problemImg4, title: 'No real accountability', stats: [{ value: 'Trusted', label: 'CIRCLE' }, { value: 'No', label: 'BROADCAST' }, { value: 'Real', label: 'SUPPORT' }], problemDesc: 'Going it alone is hard. You need someone in your corner—without broadcasting to the world.', solution: 'Family connection. Private accountability partners. Invite trusted people—no social feed.', basicClosing: 'Real support, Real results.' },
-    { image: problemImg5, title: "No way to measure growth", stats: [{ value: 'Progress', label: 'TRACK' }, { value: 'AI', label: 'INSIGHTS' }, { value: 'Proof', label: 'OVER FEELING' }], problemDesc: "You feel like you're improving, but where's the proof? Without tracking progress over time, it's hard to see how far you've come.", solution: "Progress tracking with photos, percent complete, and AI insights. Upload progress photos, see percent complete, and get AI feedback on patterns and how to improve.", basicClosing: 'Proof over feeling.' },
-  ];
+  // const problemItems: ProblemItem[] = [
+  //   { image: problemImg1, title: 'No Trolls', stats: [{ value: '100%', label: 'PRIVATE' }, { value: '0', label: 'FEED' }, { value: '1', label: 'YOUR JOURNEY' }], problemDesc: 'Your feed becomes a highlight reel of everyone else. You compare your behind-the-scenes to their best moments—and it drains you.', solution: 'Private space, no feed. Your journey stays yours—no highlight reels, no comparison.', basicClosing: 'Comparison collapses your identity.' },
+  //   { image: problemImg2, title: "Apps that don't change your life", stats: [{ value: '1', label: 'SYSTEM' }, { value: 'Goals', label: '+ PLAN' }, { value: 'Full', label: 'TRANSFORMATION' }], problemDesc: "Another to-do app, another habit tracker. They organize tasks but don't help you become someone new. You need a development system, not another inbox.", solution: 'Full development system: goals + written plan + calendar + AI feedback. One place to be the person you want to become.', basicClosing: 'Transformation, not another inbox.' },
+  //   { image: problemImg3, title: 'Goals you set and forget', stats: [{ value: 'Written', label: 'PLAN' }, { value: 'Calendar', label: 'REVISIT' }, { value: 'Goals', label: 'STICK' }], problemDesc: 'New Year resolutions. Big ideas in a notes app. Without a written plan and a place to revisit them, goals fade by February.', solution: "Written plan + calendar + revisit. Attach goals to time with reminders so they don't fade.", basicClosing: 'Steps & Due Dates = 91% Progress.' },
+  //   { image: problemImg4, title: 'No real accountability', stats: [{ value: 'Trusted', label: 'CIRCLE' }, { value: 'No', label: 'BROADCAST' }, { value: 'Real', label: 'SUPPORT' }], problemDesc: 'Going it alone is hard. You need someone in your corner—without broadcasting to the world.', solution: 'Family connection. Private accountability partners. Invite trusted people—no social feed.', basicClosing: 'Real support, Real results.' },
+  //   { image: problemImg5, title: "No way to measure growth", stats: [{ value: 'Progress', label: 'TRACK' }, { value: 'AI', label: 'INSIGHTS' }, { value: 'Proof', label: 'OVER FEELING' }], problemDesc: "You feel like you're improving, but where's the proof? Without tracking progress over time, it's hard to see how far you've come.", solution: "Progress tracking with photos, percent complete, and AI insights. Upload progress photos, see percent complete, and get AI feedback on patterns and how to improve.", basicClosing: 'Proof over feeling.' },
+  // ];
 
   const stepItems: StepItem[] = [
     { step: 1, title: 'Choose who you want to become', icon: Target, img: stepImg1 },
@@ -498,13 +498,13 @@ export const LandingContent: React.FC = () => {
             </motion.div>
           </div>
 
-          <div className="grid gap-10 sm:gap-12">
+          {/* <div className="grid gap-10 sm:gap-12">
             {problemItems.map((item, i) => (
               <ProblemCard key={i} item={item} index={i} />
             ))}
-          </div>
+          </div> */}
 
-          <div ref={problemClosingRef} className="mt-12">
+          {/* <div ref={problemClosingRef} className="mt-12">
             <motion.p
               className="text-center text-sm font-medium opacity-85 max-w-xl mx-auto"
               style={{ color: 'var(--landing-text)' }}
@@ -514,7 +514,7 @@ export const LandingContent: React.FC = () => {
             >
               A private space for your goals, your plan, your progress—and real accountability—without the noise.
             </motion.p>
-          </div>
+          </div> */}
         </div>
       </section>
 

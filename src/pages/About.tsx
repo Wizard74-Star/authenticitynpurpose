@@ -42,13 +42,13 @@ export default function About() {
         <HeroFloatingCircles />
         <div className="relative z-10 max-w-6xl mx-auto text-center px-4 sm:px-6">
           <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] animate-slide-up"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-gray-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] animate-slide-up"
             style={{ animationDelay: "0.1s" }}
           >
             Your journey. Your rules. No comparison.
           </h1>
           <p
-            className="text-lg sm:text-xl mb-10 font-semibold max-w-2xl mx-auto text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] animate-slide-up"
+            className="text-lg sm:text-xl mb-10 font-semibold max-w-2xl mx-auto text-gray-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)] animate-slide-up"
             style={{ animationDelay: "0.25s" }}
           >
             Authenticity & Purpose is a private space to dream, plan, and achieve—without the noise of social feeds or the pressure to perform for anyone but yourself.

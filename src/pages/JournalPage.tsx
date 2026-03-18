@@ -119,11 +119,11 @@ export default function JournalPage() {
                 </div>
                 <div>
                   <h1
-                    className="text-3xl sm:text-4xl font-bold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]"
+                    className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]"
                   >
                     Journal
                   </h1>
-                  <p className="mt-3 text-sm sm:text-base max-w-2xl leading-relaxed text-white/95 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  <p className="mt-3 text-sm sm:text-base max-w-2xl leading-relaxed text-gray-900 font-semibold drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">
                     Capture your days, reflect on your thoughts, and track your mood. Browse entries by list or calendar—write about what went well, what you&apos;re grateful for, or what you want to accomplish next.
                   </p>
                 </div>

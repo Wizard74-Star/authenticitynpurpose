@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { LandingPageLayout } from '@/components/LandingPageLayout';
 import { HeroFloatingCircles } from '@/components/HeroFloatingCircles';
-import useCasesBg from '@/assets/images/1770752738.png';
 import peopleSelfDevImg from '@/assets/images/People-serious-about-self-development.jpg';
 import entrepreneursImg from '@/assets/images/Entrepreneurs.jpg';
 import studentsImg from '@/assets/images/Students.jpg';
@@ -81,26 +80,28 @@ const UseCase: React.FC = () => {
 
   return (
     <LandingPageLayout>
-      {/* Hero */}
+      {/* Hero — green background */}
       <section
         id="hero"
         className="relative py-20 sm:py-28 px-4 min-h-[28rem] flex items-center justify-center overflow-hidden"
       >
         <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${useCasesBg})` }}
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, var(--landing-primary) 0%, var(--landing-primary-soft) 50%, #1a6b4f 70%, #0f4c3a 100%)',
+          }}
           aria-hidden
         />
         <HeroFloatingCircles />
         <div className="relative z-10 max-w-5xl mx-auto text-center px-4 sm:px-6">
           <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] animate-slide-up"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] animate-slide-up"
             style={{ animationDelay: '0.1s' }}
           >
             Who is this for?
           </h1>
           <div
-            className="space-y-4 text-base sm:text-lg mb-10 font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] animate-slide-up"
+            className="space-y-4 text-base sm:text-lg mb-10 font-semibold text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] animate-slide-up"
             style={{ animationDelay: '0.25s' }}
           >
             <p>
