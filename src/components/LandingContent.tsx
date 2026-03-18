@@ -615,7 +615,7 @@ export const LandingContent: React.FC = () => {
                 animate={isVisionBadgeInView ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 0, y: 24, rotateX: 8 }}
                 transition={{ delay: 0.35, duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
               >
-                This is a personal development space
+                A personal development space
               </motion.h2>
               <motion.p
                 className="text-xl sm:text-2xl font-semibold mb-6"
@@ -648,6 +648,60 @@ export const LandingContent: React.FC = () => {
             </div>
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* Free Trial Banner */}
+      <section className="py-16 sm:py-20 px-4 relative overflow-hidden" style={{ backgroundColor: 'var(--landing-bg)' }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.h3
+              className="text-4xl sm:text-5xl md:text-6xl font-bold mb-8"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                color: 'var(--landing-primary)',
+                letterSpacing: '-0.02em',
+              }}
+              initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+              whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ delay: 0.2, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            >
+              7 Day Free Trial
+            </motion.h3>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ delay: 0.4, duration: 0.7 }}
+            >
+              <AuthModal
+                trigger={
+                  <Button
+                    size="lg"
+                    className="px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    style={{
+                      backgroundColor: 'var(--landing-primary)',
+                      color: 'white',
+                    }}
+                  >
+                    Start Your Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                }
+                defaultMode="signup"
+              />
+              <p className="mt-4 text-sm opacity-70" style={{ color: 'var(--landing-text)' }}>
+                No credit card required
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
       </section>
 
       {/* 4. How The System Works — 3D cards + staggered scroll reveal */}
