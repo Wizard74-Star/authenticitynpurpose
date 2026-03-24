@@ -202,8 +202,7 @@ export function JournalEntryForm({
         <Button
           onClick={handleSave}
           disabled={!isValid}
-          className="rounded-xl"
-          style={{ backgroundColor: 'var(--landing-primary)', color: 'white' }}
+          className="rounded-xl bg-zinc-800 text-white hover:bg-zinc-900 disabled:opacity-50"
         >
           <Save className="h-4 w-4 mr-2" />
           {isEdit ? 'Update Entry' : 'Save Entry'}

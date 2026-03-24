@@ -469,7 +469,7 @@ export const LandingContent: React.FC = () => {
             >
               <motion.span
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-widest mb-5 block"
-                style={{ backgroundColor: 'var(--landing-accent)', color: 'var(--landing-primary)' }}
+                style={{ backgroundColor: '#e4e4e7', color: '#3f3f46' }}
                 initial={{ opacity: 0, y: 16 }}
                 animate={isProblemIntroInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.15, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
@@ -479,7 +479,7 @@ export const LandingContent: React.FC = () => {
               </motion.span>
               <motion.h2
                 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-5 tracking-tight"
-                style={{ color: 'var(--landing-primary)' }}
+                style={{ color: '#27272a' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={isProblemIntroInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.25, duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
@@ -636,7 +636,7 @@ export const LandingContent: React.FC = () => {
         ref={visionSectionRef}
         className="relative py-28 px-4 overflow-hidden min-h-[32rem] flex items-center"
         style={{
-          backgroundColor: 'var(--landing-accent)',
+          background: 'linear-gradient(180deg, #d4d4d8 0%, #d4d4d8 48%, #d4d4d8 48%, #d4d4d8 100%)',
           perspective: '1200px',
         }}
       >
@@ -685,7 +685,7 @@ export const LandingContent: React.FC = () => {
               backgroundColor: 'rgba(255,255,255,0.7)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              boxShadow: '0 25px 50px -12px rgba(44, 157, 115, 0.15), 0 0 0 1px rgba(255,255,255,0.5)',
+              boxShadow: '0 25px 50px -12px rgba(24, 24, 27, 0.12), 0 0 0 1px rgba(255,255,255,0.5)',
               transformStyle: 'preserve-3d',
             }}
             initial={{ opacity: 0, rotateX: 12, y: 40 }}
@@ -695,7 +695,7 @@ export const LandingContent: React.FC = () => {
               rotateX: -2,
               rotateY: 2,
               scale: 1.01,
-              boxShadow: '0 32px 64px -16px rgba(44, 157, 115, 0.22), 0 0 0 1px rgba(255,255,255,0.6)',
+              boxShadow: '0 32px 64px -16px rgba(24, 24, 27, 0.18), 0 0 0 1px rgba(255,255,255,0.6)',
               transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
             }}
           >

@@ -15,7 +15,7 @@ interface AuthenticatedFooterProps {
  */
 export const AuthenticatedFooter: React.FC<AuthenticatedFooterProps> = ({ navigate }) => {
   return (
-    <footer className="py-12 px-4 text-white" style={{ backgroundColor: 'var(--landing-primary)' }}>
+    <footer className="py-12 px-4 text-white bg-zinc-700">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
           {/* Your Journey — core app flow (Identity → Goals–Vision Board → Calendar → Progress → AI) */}

@@ -36,7 +36,7 @@ export const TrialBanner = () => {
   const inviteCodeLine = (
     <p className="text-sm mt-2 text-muted-foreground">
       Have an invite code?{' '}
-      <a href="/pricing#invite-code" className="font-medium underline hover:no-underline text-green-700 dark:text-green-400">
+      <a href="/pricing#invite-code" className="font-medium underline hover:no-underline text-zinc-700 dark:text-zinc-300">
         Redeem it here
       </a>
       .
@@ -49,11 +49,11 @@ export const TrialBanner = () => {
   if (isPremium && !isTrial) {
     return (
       <div>
-        <Alert className="border-2 border-green-500 bg-gradient-to-r from-green-50 to-lime-50 relative pr-12 mb-2">
+        <Alert className="border-2 border-zinc-400 bg-gradient-to-r from-zinc-100 to-zinc-200 relative pr-12 mb-2">
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 h-8 w-8 text-green-700 hover:bg-green-100 rounded-full"
+            className="absolute top-2 right-2 h-8 w-8 text-zinc-700 hover:bg-zinc-200/80 rounded-full"
             onClick={handleClose}
             aria-label="Dismiss for today"
           >
@@ -61,8 +61,8 @@ export const TrialBanner = () => {
           </Button>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Leaf className="h-5 w-5 text-green-600" />
-              <AlertDescription className="text-green-900">
+              <Leaf className="h-5 w-5 text-zinc-600" />
+              <AlertDescription className="text-zinc-900">
                 <span className="font-semibold">You're a Lifetime Member!</span>
                 {' - '}Enjoy full access to all features, for life.
               </AlertDescription>
@@ -78,11 +78,11 @@ export const TrialBanner = () => {
     // Show one-time purchase banner for free users
     return (
       <div>
-        <Alert className="border-2 border-green-500 bg-gradient-to-r from-green-50 to-lime-50 relative pr-12 mb-2">
+        <Alert className="border-2 border-zinc-400 bg-gradient-to-r from-zinc-100 to-zinc-200 relative pr-12 mb-2">
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 h-8 w-8 text-green-700 hover:bg-green-100 rounded-full"
+            className="absolute top-2 right-2 h-8 w-8 text-zinc-700 hover:bg-zinc-200/80 rounded-full"
             onClick={handleClose}
             aria-label="Dismiss for today"
           >
@@ -90,13 +90,13 @@ export const TrialBanner = () => {
           </Button>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <Gift className="h-5 w-5 text-green-600" />
-              <AlertDescription className="text-green-900">
+              <Gift className="h-5 w-5 text-zinc-600" />
+              <AlertDescription className="text-zinc-900">
                 <span className="font-semibold">Get lifetime access</span>
                 {' - '}One payment of $19. Full access to all features, for life.
               </AlertDescription>
             </div>
-            <Button onClick={() => navigate('/pricing')} className="bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-700 hover:to-lime-600 shrink-0">
+            <Button onClick={() => navigate('/pricing')} className="bg-zinc-800 hover:bg-zinc-900 text-white shrink-0">
               <Leaf className="h-4 w-4 mr-2" />
               Get access
             </Button>
@@ -111,11 +111,11 @@ export const TrialBanner = () => {
 
   return (
     <div>
-      <Alert className={`border-2 relative pr-12 mb-2 ${isExpiringSoon ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50' : 'border-green-500 bg-gradient-to-r from-green-50 to-lime-50'}`}>
+      <Alert className={`border-2 relative pr-12 mb-2 ${isExpiringSoon ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50' : 'border-zinc-400 bg-gradient-to-r from-zinc-100 to-zinc-200'}`}>
         <Button
           variant="ghost"
           size="icon"
-          className={`absolute top-2 right-2 h-8 w-8 rounded-full ${isExpiringSoon ? 'text-orange-700 hover:bg-orange-100' : 'text-green-700 hover:bg-green-100'}`}
+          className={`absolute top-2 right-2 h-8 w-8 rounded-full ${isExpiringSoon ? 'text-orange-700 hover:bg-orange-100' : 'text-zinc-700 hover:bg-zinc-200/80'}`}
           onClick={handleClose}
           aria-label="Dismiss for today"
         >
@@ -126,9 +126,9 @@ export const TrialBanner = () => {
             {isExpiringSoon ? (
               <Flame className="h-5 w-5 text-orange-600" />
             ) : (
-              <Leaf className="h-5 w-5 text-green-600" />
+              <Leaf className="h-5 w-5 text-zinc-600" />
             )}
-            <AlertDescription className={isExpiringSoon ? 'text-orange-900' : 'text-green-900'}>
+            <AlertDescription className={isExpiringSoon ? 'text-orange-900' : 'text-zinc-900'}>
               <span className="font-semibold">
                 {trialDaysRemaining === 0 ? 'Your free trial expires today!' : 
                  trialDaysRemaining === 1 ? 'Your free trial expires tomorrow!' :
@@ -139,7 +139,7 @@ export const TrialBanner = () => {
           </div>
           <Button 
             onClick={() => navigate('/pricing')}
-            className={isExpiringSoon ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600' : 'bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-700 hover:to-lime-600'}
+            className={isExpiringSoon ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600' : 'bg-zinc-800 hover:bg-zinc-900 text-white'}
           >
             <Leaf className="h-4 w-4 mr-2" />
             Get lifetime access

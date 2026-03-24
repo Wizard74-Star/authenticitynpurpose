@@ -1263,15 +1263,20 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
           <section id="journal" className="scroll-mt-24 sm:scroll-mt-28">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-2 sm:gap-3">
-                <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 shrink-0" style={{ color: 'var(--landing-primary)' }} />
+                <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 text-zinc-600" />
                 <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--landing-text)' }}>Journal</h2>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="rounded-xl min-h-9 touch-manipulation" onClick={() => navigate('/journal')}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl min-h-9 touch-manipulation border-zinc-400 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 hover:text-zinc-900"
+                  onClick={() => navigate('/journal')}
+                >
                   Open Journal
                 </Button>
                 <Button
-                  className="rounded-xl min-h-9 touch-manipulation hero-cta-primary"
+                  className="rounded-xl min-h-9 touch-manipulation bg-zinc-800 text-white border-2 border-zinc-800 hover:bg-zinc-900 shadow-sm transition-colors"
                   onClick={() => setJournalDialogOpen(true)}
                 >
                   <PenLine className="h-4 w-4 mr-2" />
@@ -1280,7 +1285,7 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
               </div>
             </div>
             {journalForDate ? (
-              <Card className="p-4 sm:p-6 rounded-lg sm:rounded-xl border" style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}>
+              <Card className="p-4 sm:p-6 rounded-lg sm:rounded-xl border border-zinc-300/80 bg-zinc-200">
                 <p className="text-sm font-medium mb-1" style={{ color: 'var(--landing-text)', opacity: 0.8 }}>
                   {new Date(todayIso + 'T12:00:00').toLocaleDateString('en-US')}
                 </p>
@@ -1293,21 +1298,20 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-3 text-sm"
-                  style={{ color: 'var(--landing-primary)' }}
+                  className="mt-3 text-sm text-zinc-700 hover:text-zinc-900 hover:bg-zinc-300/50"
                   onClick={() => navigate('/journal')}
                 >
                   View all entries →
                 </Button>
               </Card>
             ) : (
-              <Card className="p-6 sm:p-8 rounded-lg sm:rounded-xl border text-center" style={{ backgroundColor: 'var(--landing-accent)', borderColor: 'var(--landing-border)' }}>
-                <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-60" style={{ color: 'var(--landing-primary)' }} />
+              <Card className="p-6 sm:p-8 rounded-lg sm:rounded-xl border border-zinc-300/80 bg-zinc-200 text-center">
+                <BookOpen className="h-10 w-10 mx-auto mb-3 text-zinc-500" />
                 <p className="text-sm mb-4" style={{ color: 'var(--landing-text)', opacity: 0.9 }}>
                   Capture your day and reflect. Your journal is separate from appreciation—use it for thoughts, experiences, or anything you want to remember.
                 </p>
                 <Button
-                  className="rounded-xl hero-cta-primary"
+                  className="rounded-xl bg-zinc-800 text-white border-2 border-zinc-800 hover:bg-zinc-900 shadow-sm transition-colors"
                   onClick={() => setJournalDialogOpen(true)}
                 >
                   <PenLine className="h-4 w-4 mr-2" />

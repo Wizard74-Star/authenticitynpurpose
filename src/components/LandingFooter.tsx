@@ -8,7 +8,7 @@ interface LandingFooterProps {
 
 export const LandingFooter: React.FC<LandingFooterProps> = ({ navigate, scrollToLandingSection }) => {
   return (
-    <footer className="py-12 px-4 text-white" style={{ backgroundColor: 'var(--landing-primary)' }}>
+    <footer className="py-12 px-4 text-white bg-zinc-700">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap justify-between items-center gap-6">
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="" className="h-9 w-9 object-contain" aria-hidden />

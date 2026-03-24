@@ -112,7 +112,7 @@ export default function JournalPage() {
                   <Button
                     variant="outline"
                     onClick={() => navigate('/')}
-                    className="rounded-xl bg-white/85 hover:bg-white text-[var(--landing-primary)] border-none"
+                    className="rounded-xl bg-white/85 hover:bg-white text-zinc-800 border-zinc-400/50"
                   >
                     Home
                   </Button>
@@ -131,7 +131,7 @@ export default function JournalPage() {
               {!showNewEntry && !editingEntry && (
                 <Button
                   onClick={() => { setShowNewEntry(true); setActiveTab('write'); }}
-                  className="hero-cta-primary font-semibold rounded-xl shrink-0 bg-white text-[var(--landing-primary)] hover:bg-slate-100 shadow-lg"
+                  className="font-semibold rounded-xl shrink-0 bg-zinc-800 text-white border-2 border-zinc-800 hover:bg-zinc-900 shadow-lg transition-colors"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Write your Journal Entry
@@ -147,14 +147,14 @@ export default function JournalPage() {
             <div className="space-y-6">
               <Card className="border" style={{ borderColor: 'var(--landing-border)' }}>
                 <CardContent className="pt-8 pb-8 text-center">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-60" style={{ color: 'var(--landing-primary)' }} />
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-zinc-500" />
                   <h2 className="text-xl font-semibold mb-2">Start your journal</h2>
                   <p className="text-sm opacity-80 max-w-md mx-auto mb-6">
                     There’s no “right” way to journal. Write about your day, how you feel, or what you’re working toward.
                   </p>
                   <Button
                     onClick={() => { setShowNewEntry(true); setActiveTab('write'); }}
-                    style={{ backgroundColor: 'var(--landing-primary)', color: 'white' }}
+                    className="bg-zinc-800 text-white hover:bg-zinc-900"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Write your first entry
@@ -163,38 +163,38 @@ export default function JournalPage() {
               </Card>
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <Card className="border" style={{ borderColor: 'var(--landing-border)', backgroundColor: 'var(--landing-accent)' }}>
+                <Card className="border border-zinc-300/80 bg-zinc-200">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--landing-text)' }}>
-                      <Lightbulb className="h-4 w-4" style={{ color: 'var(--landing-primary)' }} />
+                      <Lightbulb className="h-4 w-4 text-zinc-600" />
                       Ideas to get started
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <ul className="text-sm space-y-2" style={{ color: 'var(--landing-text)', opacity: 0.9 }}>
                       <li className="flex items-start gap-2">
-                        <PenLine className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--landing-primary)' }} />
+                        <PenLine className="h-4 w-4 shrink-0 mt-0.5 text-zinc-600" />
                         What went well today?
                       </li>
                       <li className="flex items-start gap-2">
-                        <Heart className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--landing-primary)' }} />
+                        <Heart className="h-4 w-4 shrink-0 mt-0.5 text-zinc-600" />
                         Something I’m grateful for
                       </li>
                       <li className="flex items-start gap-2">
-                        <Sparkles className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--landing-primary)' }} />
+                        <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-zinc-600" />
                         One thing I want to accomplish tomorrow
                       </li>
                       <li className="flex items-start gap-2">
-                        <BookOpen className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--landing-primary)' }} />
+                        <BookOpen className="h-4 w-4 shrink-0 mt-0.5 text-zinc-600" />
                         How I’m feeling right now
                       </li>
                     </ul>
                   </CardContent>
                 </Card>
-                <Card className="border" style={{ borderColor: 'var(--landing-border)', backgroundColor: 'var(--landing-accent)' }}>
+                <Card className="border border-zinc-300/80 bg-zinc-200">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--landing-text)' }}>
-                      <CalendarIcon className="h-4 w-4" style={{ color: 'var(--landing-primary)' }} />
+                      <CalendarIcon className="h-4 w-4 text-zinc-600" />
                       What you’ll see next
                     </CardTitle>
                   </CardHeader>
@@ -232,7 +232,7 @@ export default function JournalPage() {
 
               {!showNewEntry && !editingEntry && (
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="mb-6 w-full sm:w-auto" style={{ backgroundColor: 'var(--landing-hover-bg)' }}>
+                  <TabsList className="mb-6 w-full sm:w-auto bg-zinc-200/80">
                     <TabsTrigger value="entries" className="gap-2">
                       <List className="h-4 w-4" />
                       Entries
