@@ -34,6 +34,7 @@ function toListEntry(e: ManifestationJournalEntry): {
   content: string;
   mood: string;
   tags: string[];
+  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
 } {
@@ -44,6 +45,7 @@ function toListEntry(e: ManifestationJournalEntry): {
     content: e.content,
     mood: MOOD_TO_UI[e.mood] ?? 'neutral',
     tags: [],
+    imageUrl: e.imageUrl,
     createdAt: e.createdAt ?? '',
     updatedAt: e.createdAt ?? '',
   };
@@ -51,21 +53,40 @@ function toListEntry(e: ManifestationJournalEntry): {
 
 export default function JournalPage() {
   const navigate = useNavigate();
-  const { journalEntries, addJournalEntry, updateJournalEntry, deleteJournalEntry } = useManifestationDatabase();
+  const { journalEntries, addJournalEntry, updateJournalEntry, deleteJournalEntry, uploadJournalImage } = useManifestationDatabase();
   const entries = useMemo(() => journalEntries.map(toListEntry), [journalEntries]);
 
   const [activeTab, setActiveTab] = useState('entries');
   const [editingEntry, setEditingEntry] = useState<ReturnType<typeof toListEntry> | null>(null);
   const [showNewEntry, setShowNewEntry] = useState(false);
 
-  const handleSaveEntry = async (payload: { id?: string; date: string; title: string; content: string; mood: string }) => {
+  const handleSaveEntry = async (payload: {
+    date: string;
+    title: string;
+    content: string;
+    mood: string;
+    imageUrl?: string | null;
+  }) => {
     const mood = (UI_TO_MOOD[payload.mood] ?? 'good') as 'great' | 'good' | 'okay' | 'tough';
     const date = payload.date.split('T')[0];
+    const imageUrl =
+      payload.imageUrl !== undefined ? payload.imageUrl : undefined;
     if (editingEntry) {
-      await updateJournalEntry(editingEntry.id, { title: payload.title, content: payload.content, mood });
+      await updateJournalEntry(editingEntry.id, {
+        title: payload.title,
+        content: payload.content,
+        mood,
+        imageUrl,
+      });
       setEditingEntry(null);
     } else {
-      await addJournalEntry({ date, title: payload.title, content: payload.content, mood });
+      await addJournalEntry({
+        date,
+        title: payload.title,
+        content: payload.content,
+        mood,
+        imageUrl,
+      });
       setShowNewEntry(false);
     }
   };
@@ -223,7 +244,9 @@ export default function JournalPage() {
                       content: editingEntry.content,
                       mood: editingEntry.mood,
                       tags: editingEntry.tags,
+                      imageUrl: editingEntry.imageUrl,
                     } : undefined}
+                    uploadImage={uploadJournalImage}
                     onSave={handleSaveEntry}
                     onCancel={handleCancelEdit}
                   />

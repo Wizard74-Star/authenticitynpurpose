@@ -63,10 +63,25 @@ export interface ManifestationJournalEntry {
   id: string;
   title: string;
   content: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   mood: 'great' | 'good' | 'okay' | 'tough';
   date: string;
   createdAt?: string;
+}
+
+const JOURNAL_PHOTOS_BUCKET = 'progress-photos';
+
+const IMAGE_EXT_TO_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+};
+function journalImageContentType(file: File): string {
+  if (file.type && file.type.startsWith('image/')) return file.type;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  return IMAGE_EXT_TO_MIME[ext] ?? 'image/jpeg';
 }
 
 function persistDemo(state: { goals: ManifestationGoal[]; todos: ManifestationTodo[]; gratitudeEntries: ManifestationGratitude[]; journalEntries: ManifestationJournalEntry[]; totalPoints: number; streak: number }) {
@@ -88,6 +103,41 @@ export function useManifestationDatabase() {
   const [isMutating, setIsMutating] = useState(false);
 
   const useLocalStorageOnly = !user && isDemoMode;
+
+  /** Upload a journal image; demo/local mode uses a data URL, signed-in uses Storage. */
+  const uploadJournalImage = async (file: File): Promise<string> => {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Please choose an image file (e.g. JPG, PNG).');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('Image must be under 5MB.');
+    }
+    if (useLocalStorageOnly || !user) {
+      return new Promise<string>((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = () => rej(new Error('Could not read file.'));
+        r.readAsDataURL(file);
+      });
+    }
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/gi, '') || 'jpg';
+    const safeId = String(user.id).replace(/[^a-zA-Z0-9_-]/g, '') || user.id;
+    const filePath = `${safeId}/journal/${crypto.randomUUID()}.${ext}`;
+    const body = await file.arrayBuffer();
+    const { error: uploadError } = await supabase.storage
+      .from(JOURNAL_PHOTOS_BUCKET)
+      .upload(filePath, body, { upsert: false, contentType: journalImageContentType(file) });
+    if (uploadError) {
+      throw new Error(
+        (uploadError.message || 'Upload failed') +
+          (uploadError.message?.includes('Bucket') || uploadError.message?.includes('not found')
+            ? ` Create the bucket "${JOURNAL_PHOTOS_BUCKET}" in Supabase Dashboard → Storage (public).`
+            : '')
+      );
+    }
+    const { data: urlData } = supabase.storage.from(JOURNAL_PHOTOS_BUCKET).getPublicUrl(filePath);
+    return urlData.publicUrl;
+  };
 
   const loadAll = async () => {
     if (!user) return;
@@ -485,7 +535,7 @@ export function useManifestationDatabase() {
       user_id: user.id,
       title: entry.title,
       content: entry.content,
-      image_url: entry.imageUrl,
+      image_url: entry.imageUrl ?? null,
       mood: entry.mood,
       date
     }).select('id,date').single();
@@ -507,7 +557,7 @@ export function useManifestationDatabase() {
     const db: Record<string, unknown> = {};
     if (updates.title !== undefined) db.title = updates.title;
     if (updates.content !== undefined) db.content = updates.content;
-    if (updates.imageUrl !== undefined) db.image_url = updates.imageUrl;
+    if (updates.imageUrl !== undefined) db.image_url = updates.imageUrl ?? null;
     if (updates.mood !== undefined) db.mood = updates.mood;
     if (updates.date !== undefined) db.date = updates.date.split('T')[0];
     if (Object.keys(db).length === 0) return;
@@ -556,6 +606,7 @@ export function useManifestationDatabase() {
     addJournalEntry,
     updateJournalEntry,
     deleteJournalEntry,
+    uploadJournalImage,
     refresh: loadAll
   };
 }

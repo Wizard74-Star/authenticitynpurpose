@@ -11,12 +11,24 @@ interface JournalEntryProps {
     content: string;
     mood: string;
     tags: string[];
+    imageUrl?: string;
   };
-  onSave: (entry: any) => void;
+  onSave: (entry: {
+    id?: string;
+    date: string;
+    title: string;
+    content: string;
+    mood: string;
+    tags: string[];
+    imageUrl?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }) => void;
   onCancel: () => void;
+  uploadImage?: (file: File) => Promise<string>;
 }
 
-const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onSave, onCancel }) => {
+const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onSave, onCancel, uploadImage }) => {
   const initialMood = (entry?.mood ? (UI_MOOD_TO_DB[entry.mood] ?? 'good') : 'good') as 'great' | 'good' | 'okay' | 'tough';
 
   return (
@@ -35,7 +47,9 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onSave, onCancel }) 
             content: entry?.content || '',
             mood: initialMood,
             tags: entry?.tags ?? [],
+            imageUrl: entry?.imageUrl ?? null,
           }}
+          uploadImage={uploadImage}
           onSave={(values) => {
             const uiMood = DB_MOOD_TO_UI[values.mood] ?? 'happy';
             onSave({
@@ -45,7 +59,8 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ entry, onSave, onCancel }) 
               content: values.content,
               mood: uiMood,
               tags: values.tags ?? [],
-              createdAt: entry?.id ? (entry as any).createdAt : new Date().toISOString(),
+              imageUrl: values.imageUrl ?? null,
+              createdAt: entry?.id ? (entry as { createdAt?: string }).createdAt : new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             });
           }}

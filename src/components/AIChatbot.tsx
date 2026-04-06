@@ -12,6 +12,7 @@ import aiChatbotWoman from '@/assets/images/AI-chatbot-woman.jpg';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { marked } from 'marked';
+import { useAuth } from '@/contexts/AuthContext';
 
 /** Message shape for API and local state */
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
@@ -37,6 +38,7 @@ function loadAvatarPreference(): AvatarGender {
   return 'woman';
 }
 
+/** Marketing / logged-out visitors — product discovery prompts */
 const SUGGESTED_QUESTIONS = [
   "What's included in the free trial?",
   'How do I set and track goals?',
@@ -44,6 +46,12 @@ const SUGGESTED_QUESTIONS = [
   'Where can I see pricing?',
   'How does family connection work?',
 ];
+
+/** First name for the assistant avatar (matches selectable man/woman persona). */
+const ASSISTANT_FIRST_NAME: Record<AvatarGender, string> = {
+  woman: 'Maya',
+  man: 'Jordan',
+};
 
 const SYSTEM_PROMPT = `You are the friendly AI assistant for "Authenticity & Purpose" — a website that helps people plan, track, and grow through goals, timelines, and personal development without social comparison.
 
@@ -123,11 +131,15 @@ function loadStoredMessages(): ChatMessage[] {
 }
 
 export const AIChatbot: React.FC = () => {
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(loadStoredMessages);
   const [avatarGender, setAvatarGender] = useState<AvatarGender>(loadAvatarPreference);
 
   const avatarSrc = AVATAR_IMAGES[avatarGender];
+  const assistantFirstName = ASSISTANT_FIRST_NAME[avatarGender];
 
   const setAvatar = useCallback((gender: AvatarGender) => {
     setAvatarGender(gender);
@@ -204,6 +216,8 @@ export const AIChatbot: React.FC = () => {
 
   const showSuggestedQuestions =
     messages.length === 0 || (messages.length > 0 && messages[messages.length - 1].role === 'assistant');
+  /** Logged-in users get a simple welcome only — no demo/marketing quick picks */
+  const showMarketingPills = !isLoggedIn && showSuggestedQuestions;
 
   return (
     <div className="ai-chatbot-widget">
@@ -346,12 +360,16 @@ export const AIChatbot: React.FC = () => {
                         />
                       </div>
                       <p className="text-sm font-medium mb-1" style={{ color: 'var(--chatbot-title-text)' }}>
-                        Hi! I’m your Goals–Vision Board assistant.
+                        {isLoggedIn
+                          ? `Hi! I’m ${assistantFirstName}, your Goals–Vision Board assistant.`
+                          : 'Hi! I’m your Goals–Vision Board assistant.'}
                       </p>
                       <p className="text-xs opacity-70" style={{ color: 'var(--chatbot-bot-text)' }}>
-                        Ask about features, pricing, or how to get started.
+                        {isLoggedIn
+                          ? 'How can I help you today?'
+                          : 'Ask about features, pricing, or how to get started.'}
                       </p>
-                      {showSuggestedQuestions && (
+                      {showMarketingPills && (
                         <div className="flex flex-wrap justify-center gap-2 mt-5">
                           {SUGGESTED_QUESTIONS.map((q) => (
                             <button
@@ -420,7 +438,7 @@ export const AIChatbot: React.FC = () => {
                       </div>
                     </motion.div>
                   ))}
-                  {showSuggestedQuestions && messages.length > 0 && (
+                  {showMarketingPills && messages.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {SUGGESTED_QUESTIONS.slice(0, 3).map((q) => (
                         <button
@@ -503,7 +521,7 @@ export const AIChatbot: React.FC = () => {
                     size="icon"
                     className="h-11 w-11 shrink-0 rounded-full"
                     style={{ backgroundColor: 'var(--chatbot-send-bg)', color: 'var(--chatbot-send-text)' }}
-                    onClick={() => send('')}
+                    onClick={() => send()}
                     disabled={loading || !input.trim()}
                     aria-label="Send"
                   >

@@ -12,6 +12,7 @@ interface JournalEntry {
   content: string;
   mood: string;
   tags: string[];
+  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,6 +135,12 @@ const JournalList: React.FC<JournalListProps> = ({ entries, onEdit, onDelete }) 
                       </Button>
                     </div>
                   </div>
+
+                  {entry.imageUrl && (
+                    <div className="mb-3 rounded-lg overflow-hidden border max-h-48">
+                      <img src={entry.imageUrl} alt="" className="w-full max-h-48 object-contain bg-muted/30" />
+                    </div>
+                  )}
                   
                   <p className="text-gray-700 mb-3 leading-relaxed">
                     {truncateContent(entry.content)}

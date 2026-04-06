@@ -175,6 +175,7 @@ export default function Dashboard() {
     addJournalEntry,
     updateJournalEntry,
     deleteJournalEntry,
+    uploadJournalImage,
   } = useManifestationDatabase();
 
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -1287,6 +1288,11 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
                 {journalForDate.title && (
                   <h3 className="font-semibold mb-2" style={{ color: 'var(--landing-text)' }}>{journalForDate.title}</h3>
                 )}
+                {journalForDate.imageUrl && (
+                  <div className="mb-3 rounded-lg overflow-hidden border max-h-40 w-full max-w-sm" style={{ borderColor: 'var(--landing-border)' }}>
+                    <img src={journalForDate.imageUrl} alt="" className="w-full h-full object-cover max-h-40" />
+                  </div>
+                )}
                 <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--landing-text)' }}>
                   {journalForDate.content.length > 280 ? journalForDate.content.slice(0, 280) + '…' : journalForDate.content}
                 </p>
@@ -1396,6 +1402,7 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
         onOpenChange={setJournalDialogOpen}
         selectedIso={todayIso}
         existing={journalForDate}
+        uploadJournalImage={uploadJournalImage}
         onSave={async (entry) => {
           if (journalForDate) {
             await updateJournalEntry(journalForDate.id, { date: entry.date, title: entry.title, content: entry.content, mood: entry.mood, imageUrl: entry.imageUrl });
@@ -1733,6 +1740,7 @@ function JournalDialog({
   onOpenChange,
   selectedIso,
   existing,
+  uploadJournalImage,
   onSave,
   onDelete,
 }: {
@@ -1740,7 +1748,8 @@ function JournalDialog({
   onOpenChange: (open: boolean) => void;
   selectedIso: string;
   existing: ManifestationJournalEntry | undefined;
-  onSave: (entry: { date: string; title: string; content: string; mood: 'great' | 'good' | 'okay' | 'tough'; imageUrl?: string }) => void | Promise<void>;
+  uploadJournalImage: (file: File) => Promise<string>;
+  onSave: (entry: { date: string; title: string; content: string; mood: 'great' | 'good' | 'okay' | 'tough'; imageUrl?: string | null }) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
 }) {
   const initialValues = React.useMemo(
@@ -1749,6 +1758,7 @@ function JournalDialog({
       title: existing?.title ?? '',
       content: existing?.content ?? '',
       mood: (existing?.mood ?? 'good') as 'great' | 'good' | 'okay' | 'tough',
+      imageUrl: existing?.imageUrl ?? null,
     }),
     [existing, selectedIso, open]
   );
@@ -1764,13 +1774,14 @@ function JournalDialog({
         <div className="pt-2">
           <JournalEntryForm
             initialValues={initialValues}
-            onSave={(values) => onSave({ ...values, imageUrl: undefined })}
+            onSave={(values) => onSave({ ...values, imageUrl: values.imageUrl ?? null })}
             onCancel={() => onOpenChange(false)}
             onDelete={onDelete}
             showDelete={!!existing && !!onDelete}
             isEdit={!!existing}
             variant="dialog"
             lockDateToToday
+            uploadImage={uploadJournalImage}
           />
         </div>
       </DialogContent>

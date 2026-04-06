@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Calendar, Heart, Smile, Meh, Frown, Save } from 'lucide-react';
+import { Calendar, Heart, Smile, Meh, Frown, Save, ImagePlus, X, Loader2 } from 'lucide-react';
 
 /** UI mood labels; map to DB values great | good | okay | tough. Icon colors match Journal page. */
 export const JOURNAL_MOODS = [
@@ -25,12 +25,16 @@ export const DB_MOOD_TO_UI: Record<string, string> = {
   tough: 'sad',
 };
 
+const MAX_JOURNAL_IMAGE_BYTES = 5 * 1024 * 1024;
+
 export interface JournalEntryFormValues {
   date: string;
   title: string;
   content: string;
   mood: 'great' | 'good' | 'okay' | 'tough';
   tags?: string[];
+  /** Stored URL or data URL; omit or null means no image */
+  imageUrl?: string | null;
 }
 
 interface JournalEntryFormProps {
@@ -43,6 +47,8 @@ interface JournalEntryFormProps {
   variant?: 'card' | 'dialog';
   /** When true, hide date picker and always use today (e.g. Dashboard journal dialog) */
   lockDateToToday?: boolean;
+  /** Upload image to storage (or data URL in demo); required for journal photos when logged in */
+  uploadImage?: (file: File) => Promise<string>;
 }
 
 export function JournalEntryForm({
@@ -54,12 +60,17 @@ export function JournalEntryForm({
   isEdit = false,
   variant = 'card',
   lockDateToToday = false,
+  uploadImage,
 }: JournalEntryFormProps) {
   const [date, setDate] = useState(initialValues.date.split('T')[0]);
   const [title, setTitle] = useState(initialValues.title);
   const [content, setContent] = useState(initialValues.content);
   const [mood, setMood] = useState(DB_MOOD_TO_UI[initialValues.mood] ?? 'happy');
   const [tagsStr, setTagsStr] = useState((initialValues.tags ?? []).join(', '));
+  const [imageUrl, setImageUrl] = useState<string | null>(initialValues.imageUrl ?? null);
+  const [imageError, setImageError] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDate(initialValues.date.split('T')[0]);
@@ -67,7 +78,9 @@ export function JournalEntryForm({
     setContent(initialValues.content);
     setMood(DB_MOOD_TO_UI[initialValues.mood] ?? 'happy');
     setTagsStr((initialValues.tags ?? []).join(', '));
-  }, [initialValues.date, initialValues.title, initialValues.content, initialValues.mood, (initialValues.tags ?? []).join(', ')]);
+    setImageUrl(initialValues.imageUrl ?? null);
+    setImageError('');
+  }, [initialValues.date, initialValues.title, initialValues.content, initialValues.mood, initialValues.imageUrl, (initialValues.tags ?? []).join(', ')]);
 
   const effectiveDate = lockDateToToday ? initialValues.date.split('T')[0] : date;
 
@@ -80,7 +93,42 @@ export function JournalEntryForm({
       content: content.trim(),
       mood: dbMood,
       tags,
+      imageUrl: imageUrl ?? null,
     });
+  };
+
+  const handlePickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageError('');
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please choose an image file (e.g. JPG, PNG).');
+      return;
+    }
+    if (file.size > MAX_JOURNAL_IMAGE_BYTES) {
+      setImageError('Image must be under 5MB.');
+      return;
+    }
+    setImageUploading(true);
+    try {
+      if (uploadImage) {
+        const url = await uploadImage(file);
+        setImageUrl(url);
+      } else {
+        const url = await new Promise<string>((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result as string);
+          r.onerror = () => rej(new Error('Could not read file.'));
+          r.readAsDataURL(file);
+        });
+        setImageUrl(url);
+      }
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Could not add photo.');
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   const isValid = content.trim().length > 0;
@@ -162,6 +210,48 @@ export function JournalEntryForm({
             );
           })}
         </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--landing-text)' }}>Photo (optional)</label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePickFile}
+        />
+        {imageUrl ? (
+          <div className="relative rounded-xl overflow-hidden border border-[var(--landing-border)] bg-muted/30 max-h-48 w-full max-w-md">
+            <img src={imageUrl} alt="" className="w-full h-full object-contain max-h-48" />
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="absolute top-2 right-2 h-8 w-8 rounded-full shadow"
+              onClick={() => setImageUrl(null)}
+              aria-label="Remove photo"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl border-[var(--landing-border)] w-full sm:w-auto"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={imageUploading}
+          >
+            {imageUploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ImagePlus className="h-4 w-4 mr-2" />
+            )}
+            Add photo
+          </Button>
+        )}
+        {imageError && <p className="text-sm text-red-600 mt-1">{imageError}</p>}
       </div>
 
       <div>
