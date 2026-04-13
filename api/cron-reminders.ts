@@ -9,7 +9,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import * as admin from 'firebase-admin';
-import { sendResendEmail, appBaseUrl } from './lib/resendEmail';
+import { sendResendEmail } from './lib/resendEmail';
+import { scheduledReminderEmailHtml } from './lib/brandEmailHtml';
 
 type Req = {
   method?: string;
@@ -179,14 +180,10 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     }
 
     if (tryEmail && emailTo) {
-      const base = appBaseUrl();
       const er = await sendResendEmail({
         to: emailTo,
-        subject: 'Reminder — Authenticity & Purpose',
-        html: `<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;max-width:560px;margin:24px auto;">
-<p style="font-size:16px;">${escapeHtml(reminder.message)}</p>
-<p style="font-size:13px;color:#666;"><a href="${base}/dashboard">Open your dashboard</a></p>
-</body></html>`,
+        subject: 'A quiet reminder from Authenticity & Purpose',
+        html: scheduledReminderEmailHtml(reminder.message),
       });
       if (er.ok) emailOk = true;
       else console.error('Resend error for reminder', reminder.id, er.error);
@@ -199,12 +196,4 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   res.status(200).json({ sent, total: list.length });
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

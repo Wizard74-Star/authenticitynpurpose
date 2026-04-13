@@ -141,6 +141,8 @@ function persistDemo(state: { goals: ManifestationGoal[]; todos: ManifestationTo
   }
 }
 
+const DEFAULT_TODO_TIME = '09:00';
+
 function parseTodoReminderAt(scheduledDate: string, timeSlot: string): Date | null {
   const t = timeSlot.trim();
   const m = /^(\d{1,2}):(\d{2})$/.exec(t);
@@ -154,6 +156,29 @@ function parseTodoReminderAt(scheduledDate: string, timeSlot: string): Date | nu
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function todoEventAt(scheduledDate: string, timeSlot?: string | null): Date | null {
+  const slot = (timeSlot?.trim() || DEFAULT_TODO_TIME);
+  return parseTodoReminderAt(scheduledDate, slot);
+}
+
+function isUuid(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+}
+
+/** Local 9:00 on the calendar day before `yyyy-mm-dd` (goal / step target). */
+function dayBeforeAtNineAm(ymd: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const target = new Date(y, mo, d);
+  if (Number.isNaN(target.getTime())) return null;
+  const dayBefore = new Date(y, mo, d);
+  dayBefore.setDate(dayBefore.getDate() - 1);
+  return new Date(dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), 9, 0, 0, 0);
+}
+
 async function clearManifestationTodoReminders(userId: string, todoId: string) {
   await supabase
     .from('reminders')
@@ -163,52 +188,33 @@ async function clearManifestationTodoReminders(userId: string, todoId: string) {
     .eq('entity_type', 'manifestation_todo');
 }
 
+/** One reminder: 1 hour before the to-do time; if under 1h away, schedule ~1 min from now. */
 async function upsertTodoTimeReminders(userId: string, todo: ManifestationTodo) {
   await clearManifestationTodoReminders(userId, todo.id);
   if (todo.completed) return;
   const sd = todo.scheduledDate?.trim();
-  const ts = todo.timeSlot?.trim();
-  if (!sd || !ts) return;
-  const at = parseTodoReminderAt(sd, ts);
+  if (!sd) return;
+  const at = todoEventAt(sd, todo.timeSlot);
   if (!at) return;
+  const eventMs = at.getTime();
   const now = Date.now();
-  const startMs = at.getTime();
-  if (startMs <= now) return;
+  if (eventMs <= now) return;
 
-  const rows: {
-    user_id: string;
-    type: string;
-    entity_type: string;
-    entity_id: string;
-    reminder_time: string;
-    channels: string[];
-    message: string;
-  }[] = [
-    {
-      user_id: userId,
-      type: 'smart_reminder',
-      entity_type: 'manifestation_todo',
-      entity_id: todo.id,
-      reminder_time: new Date(startMs).toISOString(),
-      channels: ['push', 'email'],
-      message: `Start: "${todo.title}" (${ts} on ${sd})`,
-    },
-  ];
+  const oneHourBefore = eventMs - 3600_000;
+  const reminderMs = oneHourBefore > now ? oneHourBefore : now + 60_000;
+  const whenLabel = todo.timeSlot?.trim()
+    ? `${todo.timeSlot.trim()} on ${sd}`
+    : `${DEFAULT_TODO_TIME} on ${sd}`;
 
-  const progressAt = startMs + 2 * 3600 * 1000;
-  if (progressAt > now) {
-    rows.push({
-      user_id: userId,
-      type: 'smart_reminder',
-      entity_type: 'manifestation_todo',
-      entity_id: todo.id,
-      reminder_time: new Date(progressAt).toISOString(),
-      channels: ['push', 'email'],
-      message: `Check in: "${todo.title}" — still on your list?`,
-    });
-  }
-
-  await supabase.from('reminders').insert(rows);
+  await supabase.from('reminders').insert({
+    user_id: userId,
+    type: 'smart_reminder',
+    entity_type: 'manifestation_todo',
+    entity_id: todo.id,
+    reminder_time: new Date(reminderMs).toISOString(),
+    channels: ['push', 'email'],
+    message: `Your to-do “${todo.title}” is coming up (${whenLabel}). You still have room to settle in before it arrives.`,
+  });
 }
 
 async function clearManifestationGoalReminders(userId: string, goalId: string) {
@@ -220,7 +226,19 @@ async function clearManifestationGoalReminders(userId: string, goalId: string) {
     .eq('entity_type', 'manifestation_goal');
 }
 
-async function syncManifestationGoalDeadlineReminder(
+async function clearManifestationStepReminders(userId: string, stepIds: string[]) {
+  const valid = stepIds.filter(isUuid);
+  if (!valid.length) return;
+  await supabase
+    .from('reminders')
+    .delete()
+    .eq('user_id', userId)
+    .eq('entity_type', 'manifestation_step')
+    .in('entity_id', valid);
+}
+
+/** Day before target date at 9:00 local (goal-level). */
+async function syncManifestationGoalTargetDayBeforeReminder(
   userId: string,
   goalId: string,
   targetDate: string | null | undefined,
@@ -239,17 +257,14 @@ async function syncManifestationGoalDeadlineReminder(
 
   const { data: pref } = await supabase
     .from('reminder_preferences')
-    .select('goal_deadline_enabled, goal_deadline_timing')
+    .select('goal_deadline_enabled')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (pref && pref.goal_deadline_enabled === false) return;
+  if (pref?.goal_deadline_enabled === false) return;
 
-  const hours = typeof pref?.goal_deadline_timing === 'number' ? pref.goal_deadline_timing : 24;
-  const deadlineLocal = new Date(`${td}T09:00:00`);
-  if (Number.isNaN(deadlineLocal.getTime())) return;
-  const reminderAt = new Date(deadlineLocal.getTime() - hours * 3600 * 1000);
-  if (reminderAt.getTime() <= Date.now()) return;
+  const reminderAt = dayBeforeAtNineAm(td);
+  if (!reminderAt || reminderAt.getTime() <= Date.now()) return;
 
   await supabase.from('reminders').insert({
     user_id: userId,
@@ -258,8 +273,42 @@ async function syncManifestationGoalDeadlineReminder(
     entity_id: goalId,
     reminder_time: reminderAt.toISOString(),
     channels: ['push', 'email'],
-    message: `Goal "${title}" target date is coming up (${td}).`,
+    message: `Tomorrow is the eve of your target for “${title}” (${td}). A little attention today can make tomorrow feel steady and clear.`,
   });
+}
+
+async function replaceStepDayBeforeReminders(
+  userId: string,
+  goalTitle: string,
+  steps: GoalStep[] | undefined
+) {
+  const ids = (steps ?? []).map((s) => s.id).filter(isUuid);
+  if (ids.length) {
+    await clearManifestationStepReminders(userId, ids);
+  }
+
+  const { data: pref } = await supabase
+    .from('reminder_preferences')
+    .select('goal_deadline_enabled')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (pref?.goal_deadline_enabled === false) return;
+
+  for (const step of steps ?? []) {
+    if (step.completed || !step.predictDate?.trim() || !isUuid(step.id)) continue;
+    const reminderAt = dayBeforeAtNineAm(step.predictDate);
+    if (!reminderAt || reminderAt.getTime() <= Date.now()) continue;
+    await supabase.from('reminders').insert({
+      user_id: userId,
+      type: 'smart_reminder',
+      entity_type: 'manifestation_step',
+      entity_id: step.id,
+      reminder_time: reminderAt.toISOString(),
+      channels: ['push', 'email'],
+      message: `The step “${step.title}” under “${goalTitle}” has a target date soon. Tomorrow is the day before—enough time to touch base without rush.`,
+    });
+  }
 }
 
 export function useManifestationDatabase() {
@@ -482,7 +531,8 @@ export function useManifestationDatabase() {
       if (error) throw error;
       setGoals(prev => [{ ...goal, id: data.id, createdAt: data.created_at }, ...prev]);
       await updateStats(10, 0);
-      await syncManifestationGoalDeadlineReminder(user.id, data.id, goal.targetDate ?? null, goal.title);
+      await syncManifestationGoalTargetDayBeforeReminder(user.id, data.id, goal.targetDate ?? null, goal.title);
+      await replaceStepDayBeforeReminders(user.id, goal.title, goal.steps);
       void sendTransactionalEmail({
         kind: 'manifestation_goal_created',
         payload: { title: goal.title, description: goal.description ?? '' },
@@ -516,13 +566,24 @@ export function useManifestationDatabase() {
         .eq('user_id', user.id);
       setGoals(prev => prev.map(g => g.id === goalId ? { ...g, progress } : g));
       if (!wasComplete && isNowComplete) await updateStats(100, 0);
-      const milestones = [5, 10];
-      const crossed = milestones.filter((m) => goal.progress < m && progress >= m);
-      if (crossed.length) {
-        void sendTransactionalEmail({
-          kind: 'manifestation_goal_progress',
-          payload: { title: goal.title, progress },
-        });
+      if (!wasComplete && isNowComplete) {
+        await supabase
+          .from('reminders')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('entity_id', goalId)
+          .eq('entity_type', 'manifestation_goal')
+          .eq('type', 'goal_deadline');
+        await clearManifestationStepReminders(
+          user.id,
+          (goal.steps ?? []).map((s) => s.id)
+        );
+        if ((goal.status ?? 'active') !== 'completed') {
+          void sendTransactionalEmail({
+            kind: 'manifestation_goal_completed',
+            payload: { title: goal.title },
+          });
+        }
       }
     } finally {
       setIsMutating(false);
@@ -561,26 +622,73 @@ export function useManifestationDatabase() {
       if (Object.keys(payload).length === 0) return;
       await supabase.from('manifestation_goals').update(payload).eq('id', goalId).eq('user_id', user.id);
       setGoals(prev => prev.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
-      const nextTitle = updates.title ?? goal.title;
-      const nextTarget =
-        updates.targetDate !== undefined ? updates.targetDate : goal.targetDate;
-      await syncManifestationGoalDeadlineReminder(user.id, goalId, nextTarget ?? null, nextTitle);
-      const tracked: (keyof ManifestationGoal)[] = [
-        'title',
-        'description',
-        'targetDate',
-        'timeline',
-        'priority',
-        'status',
-      ];
-      const changed = tracked.some(
-        (k) => updates[k] !== undefined && updates[k] !== goal[k]
-      );
-      if (changed) {
+
+      const merged: ManifestationGoal = { ...goal, ...updates };
+      const nextTitle = merged.title;
+      const nextTarget = merged.targetDate;
+      const oldStatus = goal.status ?? 'active';
+      const newStatus = merged.status ?? 'active';
+      const oldStepIds = (goal.steps ?? []).map((s) => s.id);
+
+      const becamePaused = oldStatus !== 'paused' && newStatus === 'paused';
+      const becameCompleted = oldStatus !== 'completed' && newStatus === 'completed';
+
+      if (becamePaused) {
         void sendTransactionalEmail({
-          kind: 'manifestation_goal_updated',
+          kind: 'manifestation_goal_paused',
           payload: { title: nextTitle },
         });
+      }
+      if (becameCompleted && (goal.progress ?? 0) < 10) {
+        void sendTransactionalEmail({
+          kind: 'manifestation_goal_completed',
+          payload: { title: nextTitle },
+        });
+      }
+
+      if (becamePaused || becameCompleted) {
+        await supabase
+          .from('reminders')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('entity_id', goalId)
+          .eq('entity_type', 'manifestation_goal')
+          .eq('type', 'goal_deadline');
+        await clearManifestationStepReminders(user.id, oldStepIds);
+      } else {
+        await syncManifestationGoalTargetDayBeforeReminder(
+          user.id,
+          goalId,
+          nextTarget ?? null,
+          nextTitle
+        );
+        await clearManifestationStepReminders(user.id, oldStepIds);
+        await replaceStepDayBeforeReminders(user.id, nextTitle, merged.steps);
+      }
+
+      if (updates.steps !== undefined) {
+        const oldById = new Map((goal.steps ?? []).map((s) => [s.id, s]));
+        const newSteps = merged.steps ?? [];
+        const newIds = new Set(newSteps.map((s) => s.id));
+        const removedTitles = (goal.steps ?? []).filter((s) => !newIds.has(s.id)).map((s) => s.title);
+        const newlyCompleted = newSteps
+          .filter((s) => {
+            const o = oldById.get(s.id);
+            return s.completed && (!o || !o.completed);
+          })
+          .map((s) => s.title);
+        if (removedTitles.length) {
+          void sendTransactionalEmail({
+            kind: 'manifestation_step_deleted',
+            payload: { goalTitle: nextTitle, steps: removedTitles.join('|') },
+          });
+        }
+        if (newlyCompleted.length) {
+          void sendTransactionalEmail({
+            kind: 'manifestation_step_completed',
+            payload: { goalTitle: nextTitle, steps: newlyCompleted.join('|') },
+          });
+        }
       }
     } finally {
       setIsMutating(false);
@@ -599,6 +707,7 @@ export function useManifestationDatabase() {
         return;
       }
       const g = goals.find((x) => x.id === goalId);
+      await clearManifestationStepReminders(user.id, (g?.steps ?? []).map((s) => s.id));
       await clearManifestationGoalReminders(user.id, goalId);
       await supabase.from('manifestation_goals').delete().eq('id', goalId).eq('user_id', user.id);
       setGoals(prev => prev.filter(g => g.id !== goalId));
@@ -649,14 +758,6 @@ export function useManifestationDatabase() {
       };
       setTodos(prev => [row, ...prev]);
       await upsertTodoTimeReminders(user.id, row);
-      void sendTransactionalEmail({
-        kind: 'manifestation_todo_created',
-        payload: {
-          title: row.title,
-          scheduledDate: row.scheduledDate ?? '',
-          timeSlot: row.timeSlot ?? '',
-        },
-      });
     } finally {
       setIsMutating(false);
     }
@@ -750,16 +851,6 @@ export function useManifestationDatabase() {
       const merged: ManifestationTodo = { ...todo, ...updates };
       setTodos(prev => prev.map(t => (t.id === todoId ? merged : t)));
       await upsertTodoTimeReminders(user.id, merged);
-      const schedChanged =
-        updates.title !== undefined ||
-        updates.scheduledDate !== undefined ||
-        updates.timeSlot !== undefined;
-      if (schedChanged) {
-        void sendTransactionalEmail({
-          kind: 'manifestation_todo_updated',
-          payload: { title: merged.title },
-        });
-      }
     } finally {
       setIsMutating(false);
     }

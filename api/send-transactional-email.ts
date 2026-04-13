@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendResendEmail, emailShell, appBaseUrl } from './lib/resendEmail';
+import { sendResendEmail, appBaseUrl } from './lib/resendEmail';
 import { getSupabaseService } from './lib/supabaseService';
+import { brandTransactionalHtml, escHtml } from './lib/brandEmailHtml';
 
 type Req = {
   method?: string;
@@ -19,10 +20,6 @@ function cors(res: Res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-/**
- * If the user has never saved notification settings, no row exists — still send to their
- * login email so Resend isn’t a no-op. If a row exists, respect email_enabled.
- */
 function resolveToEmail(
   prefs: { email_enabled?: boolean; email_address?: string | null } | null,
   userEmail: string | undefined
@@ -33,6 +30,22 @@ function resolveToEmail(
   if (prefs.email_enabled !== true) return null;
   const addr = (prefs.email_address ?? '').trim();
   return addr || login;
+}
+
+function str(payload: Record<string, unknown>, k: string): string {
+  return typeof payload[k] === 'string' ? payload[k] : '';
+}
+
+function stepListFromPayload(payload: Record<string, unknown>): string[] {
+  const raw = str(payload, 'steps');
+  if (!raw) return [];
+  return raw.split('|').map((s) => s.trim()).filter(Boolean);
+}
+
+function bulletList(items: string[]): string {
+  if (!items.length) return '';
+  const lis = items.map((t) => `<li style="margin:6px 0;">${escHtml(t)}</li>`).join('');
+  return `<ul style="margin:12px 0;padding-left:20px;color:#334155;">${lis}</ul>`;
 }
 
 export default async function handler(req: Req, res: Res): Promise<void> {
@@ -97,14 +110,20 @@ export default async function handler(req: Req, res: Res): Promise<void> {
       res.status(400).json({ error: 'No email on account' });
       return;
     }
-    const html = emailShell(
-      'Welcome to Authenticity & Purpose',
-      `<p>Thanks for joining. Your goals, plan, and to-dos are in one place—open the app anytime to stay aligned with what matters.</p>
-       <p><a href="${base}/dashboard" style="color:#2563eb;">Go to your dashboard</a></p>`
-    );
+    const html = brandTransactionalHtml({
+      kicker: 'You are in',
+      title: 'Welcome to Authenticity & Purpose',
+      lead: 'This is a quiet corner of the internet built for real goals—not performative hustle, but the work of becoming who you mean to be.',
+      blocks: [
+        `<p>Your written plan, milestones, and to-dos now live together. Small, honest check-ins beat occasional heroics every time.</p>`,
+        `<p>Whenever you are ready, open your dashboard and take one gentle step.</p>`,
+      ],
+      ctaLabel: 'Step into your dashboard',
+      ctaPath: '/dashboard',
+    });
     const r = await sendResendEmail({
       to,
-      subject: 'Welcome to Authenticity & Purpose',
+      subject: 'Welcome — your path is yours to shape',
       html,
     });
     if (!r.ok) {
@@ -136,72 +155,160 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     return;
   }
 
-  const str = (k: string) => (typeof payload[k] === 'string' ? payload[k] : '') as string;
-
   let subject = 'Authenticity & Purpose';
-  let inner = '';
+  let html = '';
 
   switch (kind) {
-    case 'manifestation_goal_created':
-      subject = `New goal: ${str('title') || 'Your goal'}`;
-      inner = `<p>You created a goal: <strong>${esc(str('title'))}</strong>.</p>`;
-      if (str('description')) inner += `<p>${esc(str('description').slice(0, 500))}</p>`;
-      break;
-    case 'manifestation_goal_updated':
-      subject = `Goal updated: ${str('title') || 'Your goal'}`;
-      inner = `<p>Your goal <strong>${esc(str('title'))}</strong> was updated.</p>`;
-      break;
-    case 'manifestation_goal_deleted':
-      subject = `Goal removed: ${str('title') || 'Goal'}`;
-      inner = `<p>The goal <strong>${esc(str('title'))}</strong> was removed from your account.</p>`;
-      break;
-    case 'manifestation_goal_progress': {
-      const p = Number(payload.progress);
-      subject = `Progress update: ${str('title') || 'Your goal'}`;
-      inner = `<p><strong>${esc(str('title'))}</strong> is now at <strong>${Number.isFinite(p) ? p : '—'}/10</strong> on your progress scale.</p>`;
+    case 'manifestation_goal_created': {
+      const title = str(payload, 'title') || 'Your goal';
+      subject = `A new intention is alive: ${title}`;
+      const desc = str(payload, 'description').slice(0, 400);
+      html = brandTransactionalHtml({
+        kicker: 'Goal created',
+        title: 'You named something that matters',
+        lead: `“${escHtml(title)}” is now part of your map—not because perfection is required, but because direction is.`,
+        blocks: [
+          desc ? `<p>${escHtml(desc)}</p>` : `<p>Give it a shape in the app when inspiration strikes: steps, dates, and gentle reminders will meet you there.</p>`,
+          `<p>One clear goal, revisited kindly, changes more than a dozen forgotten resolutions.</p>`,
+        ],
+        ctaLabel: 'View this goal',
+        ctaPath: '/dashboard',
+      });
       break;
     }
-    case 'manifestation_todo_created':
-      subject = `New to-do: ${str('title') || 'Task'}`;
-      inner = `<p>New to-do: <strong>${esc(str('title'))}</strong>.</p>`;
-      if (str('scheduledDate')) inner += `<p>Scheduled: ${esc(str('scheduledDate'))}${str('timeSlot') ? ` at ${esc(str('timeSlot'))}` : ''}</p>`;
+    case 'manifestation_goal_deleted': {
+      const title = str(payload, 'title') || 'Goal';
+      subject = `Released: ${title}`;
+      html = brandTransactionalHtml({
+        kicker: 'Goal removed',
+        title: 'You chose to let this one go',
+        lead: `“${escHtml(title)}” is no longer on your list.`,
+        blocks: [
+          `<p>Ending a chapter with intention is its own kind of integrity. Space you clear today can hold what actually fits you next.</p>`,
+        ],
+        ctaLabel: 'Return to your dashboard',
+        ctaPath: '/dashboard',
+      });
       break;
-    case 'manifestation_todo_updated':
-      subject = `To-do updated: ${str('title') || 'Task'}`;
-      inner = `<p>To-do updated: <strong>${esc(str('title'))}</strong>.</p>`;
+    }
+    case 'manifestation_goal_paused': {
+      const title = str(payload, 'title') || 'Your goal';
+      subject = `Resting for now: ${title}`;
+      html = brandTransactionalHtml({
+        kicker: 'Goal paused',
+        title: 'A pause is not a failure',
+        lead: `“${escHtml(title)}” is on hold. Scheduled nudges for this goal are paused so you can breathe without noise.`,
+        blocks: [
+          `<p>Seasons change. When you are ready to return, your work will still be there—no guilt, no catch-up script required.</p>`,
+        ],
+        ctaLabel: 'Open your dashboard',
+        ctaPath: '/dashboard',
+      });
       break;
-    case 'manifestation_todo_completed':
-      subject = `Done: ${str('title') || 'Task'}`;
-      inner = `<p>You completed: <strong>${esc(str('title'))}</strong>. Nice work.</p>`;
+    }
+    case 'manifestation_goal_completed': {
+      const title = str(payload, 'title') || 'Your goal';
+      subject = `You did it — ${title}`;
+      html = brandTransactionalHtml({
+        kicker: 'Completion',
+        title: 'Take this in',
+        lead: `“${escHtml(title)}” is complete. That is not small.`,
+        blocks: [
+          `<p>Whether it took weeks or years, you stayed in relationship with something you cared about. That deserves a full breath of recognition.</p>`,
+          `<p>Celebrate in whatever way actually lands for you—then, when you wish, ask what wants to grow next.</p>`,
+        ],
+        ctaLabel: 'Celebrate on your dashboard',
+        ctaPath: '/dashboard',
+      });
       break;
-    case 'manifestation_todo_deleted':
-      subject = `To-do removed: ${str('title') || 'Task'}`;
-      inner = `<p>To-do removed: <strong>${esc(str('title'))}</strong>.</p>`;
+    }
+    case 'manifestation_todo_completed': {
+      const title = str(payload, 'title') || 'Task';
+      subject = `Checked off: ${title}`;
+      html = brandTransactionalHtml({
+        kicker: 'To-do done',
+        title: 'That is momentum',
+        lead: `You finished “${escHtml(title)}.”`,
+        blocks: [
+          `<p>Every finished task is a vote for the life you are building—quiet, concrete, and real.</p>`,
+        ],
+        ctaLabel: 'See what is next',
+        ctaPath: '/dashboard',
+      });
       break;
+    }
+    case 'manifestation_todo_deleted': {
+      const title = str(payload, 'title') || 'Task';
+      subject = `To-do removed: ${title}`;
+      html = brandTransactionalHtml({
+        kicker: 'To-do removed',
+        title: 'List edited, mind lighter',
+        lead: `“${escHtml(title)}” was removed from your list.`,
+        blocks: [
+          `<p>Pruning what no longer serves you is part of staying honest with your energy.</p>`,
+        ],
+        ctaLabel: 'Back to your list',
+        ctaPath: '/dashboard',
+      });
+      break;
+    }
+    case 'manifestation_step_completed': {
+      const goalTitle = str(payload, 'goalTitle') || 'Your goal';
+      const steps = stepListFromPayload(payload);
+      subject =
+        steps.length > 1
+          ? `${steps.length} steps completed on “${goalTitle}”`
+          : `Step complete — ${goalTitle}`;
+      html = brandTransactionalHtml({
+        kicker: 'Milestone',
+        title: steps.length > 1 ? 'Steps worth honoring' : 'A step forward',
+        lead:
+          steps.length > 1
+            ? `On “${escHtml(goalTitle)},” you closed these pieces:`
+            : `On “${escHtml(goalTitle)},” you completed a meaningful step.`,
+        blocks: [
+          steps.length > 1 ? bulletList(steps) : `<p><strong>${escHtml(steps[0] ?? '')}</strong></p>`,
+          `<p>Each checkbox is evidence that your bigger vision is not abstract—it is being lived in small, brave moves.</p>`,
+        ],
+        ctaLabel: 'View your goal',
+        ctaPath: '/dashboard',
+      });
+      break;
+    }
+    case 'manifestation_step_deleted': {
+      const goalTitle = str(payload, 'goalTitle') || 'Your goal';
+      const steps = stepListFromPayload(payload);
+      subject =
+        steps.length > 1
+          ? `Steps removed from “${goalTitle}”`
+          : `Step removed — ${goalTitle}`;
+      html = brandTransactionalHtml({
+        kicker: 'Plan adjusted',
+        title: 'You refined the path',
+        lead:
+          steps.length > 1
+            ? `From “${escHtml(goalTitle)},” these items were removed:`
+            : `From “${escHtml(goalTitle)},” a step was removed.`,
+        blocks: [
+          steps.length > 1 ? bulletList(steps) : `<p><strong>${escHtml(steps[0] ?? '')}</strong></p>`,
+          `<p>Editing your plan is wisdom, not backtracking. The version that fits today is the right one.</p>`,
+        ],
+        ctaLabel: 'Review your goal',
+        ctaPath: '/dashboard',
+      });
+      break;
+    }
     default:
       res.status(400).json({ error: 'Unknown kind' });
       return;
   }
 
-  const r = await sendResendEmail({
-    to,
-    subject,
-    html: emailShell(subject, inner + `<p><a href="${base}/dashboard" style="color:#2563eb;">View dashboard</a></p>`),
-  });
-  console.log('r', r);
+  const r = await sendResendEmail({ to, subject, html });
   if (!r.ok) {
     res.status(502).json({ error: r.error });
     return;
   }
   res.status(200).json({ ok: true });
-}
-
-function esc(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 /** Vercel usually parses JSON; tolerate string bodies or missing fields. */

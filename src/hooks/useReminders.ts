@@ -28,7 +28,8 @@ export interface Reminder {
     | 'family_activity'
     | 'calendar_event'
     | 'manifestation_goal'
-    | 'manifestation_todo';
+    | 'manifestation_todo'
+    | 'manifestation_step';
   reminder_time: string;
   channels: string[];
   frequency?: string;
