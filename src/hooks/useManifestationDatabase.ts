@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStorageMode } from '@/contexts/StorageModeContext';
+import { sendTransactionalEmail } from '@/lib/sendTransactionalEmail';
 
 const DEMO_KEY_MANIFESTATION = 'goals_app_demo_manifestation';
 
@@ -84,10 +85,181 @@ function journalImageContentType(file: File): string {
   return IMAGE_EXT_TO_MIME[ext] ?? 'image/jpeg';
 }
 
+interface ManifestationGoalRow {
+  id: string;
+  title: string;
+  description?: string | null;
+  timeline: ManifestationGoal['timeline'];
+  progress: number;
+  image_url?: string | null;
+  priority: ManifestationGoal['priority'];
+  created_at: string;
+  recommendations?: unknown;
+  target_date?: string | null;
+  steps?: unknown;
+  budget?: number | null;
+  spent?: number | null;
+  status?: string | null;
+}
+
+interface ManifestationTodoRow {
+  id: string;
+  title: string;
+  completed: boolean;
+  points: number;
+  created_at: string;
+  scheduled_date?: string | null;
+  completed_at?: string | null;
+  time_slot?: string | null;
+  group_name?: string | null;
+}
+
+interface ManifestationGratitudeRow {
+  id: string;
+  content?: string | null;
+  date: string;
+  created_at?: string;
+  section_key?: string | null;
+  section_label?: string | null;
+}
+
+interface ManifestationJournalRow {
+  id: string;
+  title?: string | null;
+  content: string;
+  image_url?: string | null;
+  mood: ManifestationJournalEntry['mood'];
+  date: string;
+  created_at?: string;
+}
+
 function persistDemo(state: { goals: ManifestationGoal[]; todos: ManifestationTodo[]; gratitudeEntries: ManifestationGratitude[]; journalEntries: ManifestationJournalEntry[]; totalPoints: number; streak: number }) {
   try {
     localStorage.setItem(DEMO_KEY_MANIFESTATION, JSON.stringify(state));
-  } catch {}
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function parseTodoReminderAt(scheduledDate: string, timeSlot: string): Date | null {
+  const t = timeSlot.trim();
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  const d = new Date(
+    `${scheduledDate.trim()}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
+  );
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+async function clearManifestationTodoReminders(userId: string, todoId: string) {
+  await supabase
+    .from('reminders')
+    .delete()
+    .eq('user_id', userId)
+    .eq('entity_id', todoId)
+    .eq('entity_type', 'manifestation_todo');
+}
+
+async function upsertTodoTimeReminders(userId: string, todo: ManifestationTodo) {
+  await clearManifestationTodoReminders(userId, todo.id);
+  if (todo.completed) return;
+  const sd = todo.scheduledDate?.trim();
+  const ts = todo.timeSlot?.trim();
+  if (!sd || !ts) return;
+  const at = parseTodoReminderAt(sd, ts);
+  if (!at) return;
+  const now = Date.now();
+  const startMs = at.getTime();
+  if (startMs <= now) return;
+
+  const rows: {
+    user_id: string;
+    type: string;
+    entity_type: string;
+    entity_id: string;
+    reminder_time: string;
+    channels: string[];
+    message: string;
+  }[] = [
+    {
+      user_id: userId,
+      type: 'smart_reminder',
+      entity_type: 'manifestation_todo',
+      entity_id: todo.id,
+      reminder_time: new Date(startMs).toISOString(),
+      channels: ['push', 'email'],
+      message: `Start: "${todo.title}" (${ts} on ${sd})`,
+    },
+  ];
+
+  const progressAt = startMs + 2 * 3600 * 1000;
+  if (progressAt > now) {
+    rows.push({
+      user_id: userId,
+      type: 'smart_reminder',
+      entity_type: 'manifestation_todo',
+      entity_id: todo.id,
+      reminder_time: new Date(progressAt).toISOString(),
+      channels: ['push', 'email'],
+      message: `Check in: "${todo.title}" — still on your list?`,
+    });
+  }
+
+  await supabase.from('reminders').insert(rows);
+}
+
+async function clearManifestationGoalReminders(userId: string, goalId: string) {
+  await supabase
+    .from('reminders')
+    .delete()
+    .eq('user_id', userId)
+    .eq('entity_id', goalId)
+    .eq('entity_type', 'manifestation_goal');
+}
+
+async function syncManifestationGoalDeadlineReminder(
+  userId: string,
+  goalId: string,
+  targetDate: string | null | undefined,
+  title: string
+) {
+  await supabase
+    .from('reminders')
+    .delete()
+    .eq('user_id', userId)
+    .eq('entity_id', goalId)
+    .eq('entity_type', 'manifestation_goal')
+    .eq('type', 'goal_deadline');
+
+  const td = targetDate?.trim();
+  if (!td) return;
+
+  const { data: pref } = await supabase
+    .from('reminder_preferences')
+    .select('goal_deadline_enabled, goal_deadline_timing')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (pref && pref.goal_deadline_enabled === false) return;
+
+  const hours = typeof pref?.goal_deadline_timing === 'number' ? pref.goal_deadline_timing : 24;
+  const deadlineLocal = new Date(`${td}T09:00:00`);
+  if (Number.isNaN(deadlineLocal.getTime())) return;
+  const reminderAt = new Date(deadlineLocal.getTime() - hours * 3600 * 1000);
+  if (reminderAt.getTime() <= Date.now()) return;
+
+  await supabase.from('reminders').insert({
+    user_id: userId,
+    type: 'goal_deadline',
+    entity_type: 'manifestation_goal',
+    entity_id: goalId,
+    reminder_time: reminderAt.toISOString(),
+    channels: ['push', 'email'],
+    message: `Goal "${title}" target date is coming up (${td}).`,
+  });
 }
 
 export function useManifestationDatabase() {
@@ -150,10 +322,66 @@ export function useManifestationDatabase() {
         supabase.from('manifestation_journal_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }),
         supabase.from('manifestation_stats').select('*').eq('user_id', user.id).maybeSingle()
       ]);
-      if (goalsRes.data) setGoals(goalsRes.data.map((r: any) => ({ id: r.id, title: r.title, description: r.description ?? '', timeline: r.timeline, progress: r.progress, imageUrl: r.image_url, priority: r.priority, createdAt: r.created_at, recommendations: (r.recommendations ?? []) as string[], targetDate: r.target_date ?? null, steps: (r.steps ?? []) as GoalStep[], budget: r.budget ?? 0, spent: r.spent ?? 0, status: (r.status ?? 'active') as GoalStatus })));
-      if (todosRes.data) setTodos(todosRes.data.map((r: any) => ({ id: r.id, title: r.title, completed: r.completed, points: r.points, createdAt: r.created_at, scheduledDate: r.scheduled_date ?? null, completedAt: r.completed_at ?? null, timeSlot: r.time_slot ?? null, groupName: r.group_name ?? null })));
-      if (gratitudeRes.data) setGratitudeEntries(gratitudeRes.data.map((r: any) => ({ id: r.id, content: r.content ?? '', date: r.date, createdAt: r.created_at, sectionKey: r.section_key ?? undefined, sectionLabel: r.section_label ?? undefined })));
-      if (journalRes.data) setJournalEntries(journalRes.data.map((r: any) => ({ id: r.id, title: r.title ?? '', content: r.content, imageUrl: r.image_url, mood: r.mood, date: r.date, createdAt: r.created_at })));
+      if (goalsRes.data) {
+        setGoals(
+          (goalsRes.data as ManifestationGoalRow[]).map((r) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description ?? '',
+            timeline: r.timeline,
+            progress: r.progress,
+            imageUrl: r.image_url ?? undefined,
+            priority: r.priority,
+            createdAt: r.created_at,
+            recommendations: Array.isArray(r.recommendations) ? (r.recommendations as string[]) : [],
+            targetDate: r.target_date ?? null,
+            steps: Array.isArray(r.steps) ? (r.steps as GoalStep[]) : [],
+            budget: r.budget ?? 0,
+            spent: r.spent ?? 0,
+            status: (r.status ?? 'active') as GoalStatus,
+          }))
+        );
+      }
+      if (todosRes.data) {
+        setTodos(
+          (todosRes.data as ManifestationTodoRow[]).map((r) => ({
+            id: r.id,
+            title: r.title,
+            completed: r.completed,
+            points: r.points,
+            createdAt: r.created_at,
+            scheduledDate: r.scheduled_date ?? null,
+            completedAt: r.completed_at ?? null,
+            timeSlot: r.time_slot ?? null,
+            groupName: r.group_name ?? null,
+          }))
+        );
+      }
+      if (gratitudeRes.data) {
+        setGratitudeEntries(
+          (gratitudeRes.data as ManifestationGratitudeRow[]).map((r) => ({
+            id: r.id,
+            content: r.content ?? '',
+            date: r.date,
+            createdAt: r.created_at,
+            sectionKey: r.section_key ?? undefined,
+            sectionLabel: r.section_label ?? undefined,
+          }))
+        );
+      }
+      if (journalRes.data) {
+        setJournalEntries(
+          (journalRes.data as ManifestationJournalRow[]).map((r) => ({
+            id: r.id,
+            title: r.title ?? '',
+            content: r.content,
+            imageUrl: r.image_url,
+            mood: r.mood,
+            date: r.date,
+            createdAt: r.created_at,
+          }))
+        );
+      }
       if (statsRes.data) {
         setTotalPoints(statsRes.data.total_points ?? 0);
         setStreak(statsRes.data.streak ?? 0);
@@ -254,6 +482,11 @@ export function useManifestationDatabase() {
       if (error) throw error;
       setGoals(prev => [{ ...goal, id: data.id, createdAt: data.created_at }, ...prev]);
       await updateStats(10, 0);
+      await syncManifestationGoalDeadlineReminder(user.id, data.id, goal.targetDate ?? null, goal.title);
+      void sendTransactionalEmail({
+        kind: 'manifestation_goal_created',
+        payload: { title: goal.title, description: goal.description ?? '' },
+      });
     } finally {
       setIsMutating(false);
     }
@@ -276,9 +509,21 @@ export function useManifestationDatabase() {
         if (isNowComplete && !wasComplete) setTotalPoints(p => p + 100);
         return;
       }
-      await supabase.from('manifestation_goals').update({ progress }).eq('id', goalId);
+      await supabase
+        .from('manifestation_goals')
+        .update({ progress })
+        .eq('id', goalId)
+        .eq('user_id', user.id);
       setGoals(prev => prev.map(g => g.id === goalId ? { ...g, progress } : g));
       if (!wasComplete && isNowComplete) await updateStats(100, 0);
+      const milestones = [5, 10];
+      const crossed = milestones.filter((m) => goal.progress < m && progress >= m);
+      if (crossed.length) {
+        void sendTransactionalEmail({
+          kind: 'manifestation_goal_progress',
+          payload: { title: goal.title, progress },
+        });
+      }
     } finally {
       setIsMutating(false);
     }
@@ -314,8 +559,29 @@ export function useManifestationDatabase() {
       if (updates.status !== undefined) payload.status = updates.status;
       if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
       if (Object.keys(payload).length === 0) return;
-      await supabase.from('manifestation_goals').update(payload).eq('id', goalId);
+      await supabase.from('manifestation_goals').update(payload).eq('id', goalId).eq('user_id', user.id);
       setGoals(prev => prev.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
+      const nextTitle = updates.title ?? goal.title;
+      const nextTarget =
+        updates.targetDate !== undefined ? updates.targetDate : goal.targetDate;
+      await syncManifestationGoalDeadlineReminder(user.id, goalId, nextTarget ?? null, nextTitle);
+      const tracked: (keyof ManifestationGoal)[] = [
+        'title',
+        'description',
+        'targetDate',
+        'timeline',
+        'priority',
+        'status',
+      ];
+      const changed = tracked.some(
+        (k) => updates[k] !== undefined && updates[k] !== goal[k]
+      );
+      if (changed) {
+        void sendTransactionalEmail({
+          kind: 'manifestation_goal_updated',
+          payload: { title: nextTitle },
+        });
+      }
     } finally {
       setIsMutating(false);
     }
@@ -332,8 +598,16 @@ export function useManifestationDatabase() {
         });
         return;
       }
-      await supabase.from('manifestation_goals').delete().eq('id', goalId);
+      const g = goals.find((x) => x.id === goalId);
+      await clearManifestationGoalReminders(user.id, goalId);
+      await supabase.from('manifestation_goals').delete().eq('id', goalId).eq('user_id', user.id);
       setGoals(prev => prev.filter(g => g.id !== goalId));
+      if (g) {
+        void sendTransactionalEmail({
+          kind: 'manifestation_goal_deleted',
+          payload: { title: g.title },
+        });
+      }
     } finally {
       setIsMutating(false);
     }
@@ -364,7 +638,25 @@ export function useManifestationDatabase() {
       if (todo.groupName) payload.group_name = todo.groupName;
       const { data, error } = await supabase.from('manifestation_todos').insert(payload).select('id,created_at,scheduled_date,completed_at,time_slot,group_name').single();
       if (error) throw error;
-      setTodos(prev => [{ ...todo, id: data.id, createdAt: data.created_at, scheduledDate: data.scheduled_date ?? null, completedAt: data.completed_at ?? null, timeSlot: data.time_slot ?? null, groupName: data.group_name ?? null }, ...prev]);
+      const row: ManifestationTodo = {
+        ...todo,
+        id: data.id,
+        createdAt: data.created_at,
+        scheduledDate: data.scheduled_date ?? null,
+        completedAt: data.completed_at ?? null,
+        timeSlot: data.time_slot ?? null,
+        groupName: data.group_name ?? null,
+      };
+      setTodos(prev => [row, ...prev]);
+      await upsertTodoTimeReminders(user.id, row);
+      void sendTransactionalEmail({
+        kind: 'manifestation_todo_created',
+        payload: {
+          title: row.title,
+          scheduledDate: row.scheduledDate ?? '',
+          timeSlot: row.timeSlot ?? '',
+        },
+      });
     } finally {
       setIsMutating(false);
     }
@@ -387,9 +679,25 @@ export function useManifestationDatabase() {
         if (newCompleted) setTotalPoints(p => p + todo.points);
         return;
       }
-      await supabase.from('manifestation_todos').update({ completed: newCompleted, completed_at: completedAt }).eq('id', todoId);
-      setTodos(prev => prev.map(t => t.id === todoId ? { ...t, completed: newCompleted, completedAt } : t));
+      await supabase
+        .from('manifestation_todos')
+        .update({ completed: newCompleted, completed_at: completedAt })
+        .eq('id', todoId)
+        .eq('user_id', user.id);
+      const nextTodo: ManifestationTodo = {
+        ...todo,
+        completed: newCompleted,
+        completedAt,
+      };
+      setTodos(prev => prev.map(t => t.id === todoId ? nextTodo : t));
       if (newCompleted) await updateStats(todo.points, 0);
+      await upsertTodoTimeReminders(user.id, nextTodo);
+      if (newCompleted) {
+        void sendTransactionalEmail({
+          kind: 'manifestation_todo_completed',
+          payload: { title: todo.title },
+        });
+      }
     } finally {
       setIsMutating(false);
     }
@@ -406,8 +714,13 @@ export function useManifestationDatabase() {
         });
         return;
       }
-      await supabase.from('manifestation_todos').delete().eq('id', todoId);
+      await clearManifestationTodoReminders(user.id, todoId);
+      await supabase.from('manifestation_todos').delete().eq('id', todoId).eq('user_id', user.id);
       setTodos(prev => prev.filter(t => t.id !== todoId));
+      void sendTransactionalEmail({
+        kind: 'manifestation_todo_deleted',
+        payload: { title: todo.title },
+      });
     } finally {
       setIsMutating(false);
     }
@@ -433,8 +746,20 @@ export function useManifestationDatabase() {
       if (updates.timeSlot !== undefined) payload.time_slot = updates.timeSlot;
       if (updates.groupName !== undefined) payload.group_name = updates.groupName;
       if (Object.keys(payload).length === 0) return;
-      await supabase.from('manifestation_todos').update(payload).eq('id', todoId);
-      setTodos(prev => prev.map(t => (t.id === todoId ? { ...t, ...updates } : t)));
+      await supabase.from('manifestation_todos').update(payload).eq('id', todoId).eq('user_id', user.id);
+      const merged: ManifestationTodo = { ...todo, ...updates };
+      setTodos(prev => prev.map(t => (t.id === todoId ? merged : t)));
+      await upsertTodoTimeReminders(user.id, merged);
+      const schedChanged =
+        updates.title !== undefined ||
+        updates.scheduledDate !== undefined ||
+        updates.timeSlot !== undefined;
+      if (schedChanged) {
+        void sendTransactionalEmail({
+          kind: 'manifestation_todo_updated',
+          payload: { title: merged.title },
+        });
+      }
     } finally {
       setIsMutating(false);
     }

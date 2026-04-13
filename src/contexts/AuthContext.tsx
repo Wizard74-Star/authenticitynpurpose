@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { sendTransactionalEmail } from '@/lib/sendTransactionalEmail';
 
 export type OAuthProvider = 'google';
 
@@ -45,6 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (event === 'SIGNED_IN' && session?.access_token) {
+          void sendTransactionalEmail({ kind: 'welcome_once' });
+        }
       }
     );
 

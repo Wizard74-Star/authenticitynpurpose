@@ -21,7 +21,14 @@ export interface Reminder {
   user_id?: string;
   type: 'goal_deadline' | 'habit_checkin' | 'family_activity' | 'smart_reminder' | 'event_reminder';
   entity_id: string;
-  entity_type: 'goal' | 'habit' | 'family_goal' | 'family_activity' | 'calendar_event';
+  entity_type:
+    | 'goal'
+    | 'habit'
+    | 'family_goal'
+    | 'family_activity'
+    | 'calendar_event'
+    | 'manifestation_goal'
+    | 'manifestation_todo';
   reminder_time: string;
   channels: string[];
   frequency?: string;

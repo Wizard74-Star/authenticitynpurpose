@@ -99,7 +99,7 @@ export default function Calendar() {
             entity_id: eventId,
             reminder_time: reminderTime.toISOString(),
             message: `Your commitment "${eventData.title}" starts in ${label}`,
-            channels: ['push'],
+            channels: ['push', 'email'],
           });
         }
         toast({ title: 'Scheduled', description: 'Your commitment is on the calendar.' });

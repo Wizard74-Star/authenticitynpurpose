@@ -454,7 +454,7 @@ export default function Dashboard() {
             entity_id: eventId,
             reminder_time: reminderTime.toISOString(),
             message: `Your commitment "${data.title}" starts in ${label}`,
-            channels: ['push'],
+            channels: ['push', 'email'],
           });
         }
         toast({ title: 'Scheduled', description: 'Added to your day.' });
