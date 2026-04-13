@@ -136,7 +136,8 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
     const pushEnabled = prefs?.push_enabled !== false;
     const token = prefs?.fcm_token ?? null;
-    const emailEnabled = prefs?.email_enabled === true;
+    // No reminder_preferences row yet → still send email (same default as transactional API).
+    const emailEnabled = prefs == null ? true : prefs.email_enabled === true;
     const emailTo =
       emailEnabled && wantsEmail
         ? (prefs?.email_address?.trim() || emailByUserId.get(reminder.user_id) || '').trim()

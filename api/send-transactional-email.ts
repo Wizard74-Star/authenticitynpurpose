@@ -5,7 +5,7 @@ import { getSupabaseService } from './lib/supabaseService';
 type Req = {
   method?: string;
   headers?: Record<string, string | string[] | undefined>;
-  body?: { kind?: string; payload?: Record<string, unknown> };
+  body?: { kind?: string; payload?: Record<string, unknown> } | string | null;
 };
 
 type Res = {
@@ -19,15 +19,20 @@ function cors(res: Res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
+/**
+ * If the user has never saved notification settings, no row exists — still send to their
+ * login email so Resend isn’t a no-op. If a row exists, respect email_enabled.
+ */
 function resolveToEmail(
   prefs: { email_enabled?: boolean; email_address?: string | null } | null,
   userEmail: string | undefined
 ): string | null {
-  if (!prefs?.email_enabled) return null;
-  const addr = (prefs.email_address || '').trim();
-  if (addr) return addr;
-  if (userEmail) return userEmail.trim();
-  return null;
+  const login = (userEmail ?? '').trim();
+  if (!login) return null;
+  if (prefs == null) return login;
+  if (prefs.email_enabled !== true) return null;
+  const addr = (prefs.email_address ?? '').trim();
+  return addr || login;
 }
 
 export default async function handler(req: Req, res: Res): Promise<void> {
@@ -70,10 +75,9 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     return;
   }
 
-  const kind = req.body?.kind;
-  console.log('kind', kind);
-  
-  const payload = req.body?.payload ?? {};
+  const body = normalizeBody(req);
+  const kind = body.kind;
+  const payload = body.payload ?? {};
   if (!kind || typeof kind !== 'string') {
     res.status(400).json({ error: 'Missing kind' });
     return;
@@ -184,6 +188,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     subject,
     html: emailShell(subject, inner + `<p><a href="${base}/dashboard" style="color:#2563eb;">View dashboard</a></p>`),
   });
+  console.log('r', r);
   if (!r.ok) {
     res.status(502).json({ error: r.error });
     return;
@@ -197,4 +202,28 @@ function esc(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/** Vercel usually parses JSON; tolerate string bodies or missing fields. */
+function normalizeBody(req: Req): { kind?: string; payload?: Record<string, unknown> } {
+  const raw = req.body;
+  if (raw == null) return {};
+  if (typeof raw === 'string') {
+    try {
+      const p = JSON.parse(raw) as { kind?: string; payload?: Record<string, unknown> };
+      return p && typeof p === 'object' ? p : {};
+    } catch {
+      return {};
+    }
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const o = raw as { kind?: unknown; payload?: unknown };
+    const kind = typeof o.kind === 'string' ? o.kind : undefined;
+    const payload =
+      o.payload && typeof o.payload === 'object' && !Array.isArray(o.payload)
+        ? (o.payload as Record<string, unknown>)
+        : undefined;
+    return { kind, payload };
+  }
+  return {};
 }
