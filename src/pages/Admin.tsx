@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { TrialAnalyticsDashboard } from "@/components/TrialAnalyticsDashboard";
 import { InviteCodesManager } from "@/components/InviteCodesManager";
 import { AdminUserManagement } from "@/components/AdminUserManagement";
+import { CommunityModerationPanel } from "@/components/CommunityModerationPanel";
 import { AdminLoginCard } from "@/components/auth/AdminLoginCard";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   LayoutDashboard,
   Gift,
   Users,
+  MessageSquareWarning,
   Menu,
   LogOut,
 } from "lucide-react";
@@ -25,7 +27,7 @@ import {
 } from "@/components/ui/sheet";
 import logoImg from "@/assets/images/Logo.png";
 
-type AdminSection = "analytics" | "invite-codes" | "users";
+type AdminSection = "analytics" | "invite-codes" | "users" | "community";
 
 export default function Admin() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -105,6 +107,7 @@ export default function Admin() {
     { id: "analytics", label: "Analytics", icon: <LayoutDashboard className="h-4 w-4" /> },
     { id: "invite-codes", label: "Invite codes", icon: <Gift className="h-4 w-4" /> },
     { id: "users", label: "User management", icon: <Users className="h-4 w-4" /> },
+    { id: "community", label: "Community moderation", icon: <MessageSquareWarning className="h-4 w-4" /> },
   ];
 
   return (
@@ -210,6 +213,11 @@ export default function Admin() {
         {section === "users" && (
           <section id="users" className="animate-in fade-in duration-200 w-full">
             <AdminUserManagement />
+          </section>
+        )}
+        {section === "community" && (
+          <section id="community" className="animate-in fade-in duration-200 w-full">
+            <CommunityModerationPanel />
           </section>
         )}
       </main>

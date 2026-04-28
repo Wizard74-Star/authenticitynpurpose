@@ -12,6 +12,38 @@ import { ABTestingResults } from "./ABTestingResults";
 import { PredictiveModeling } from "./PredictiveModeling";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+
+type CommunityModerationSnapshot = {
+  postsTotal: number;
+  postsPending: number;
+  postsApproved: number;
+  postsRemoved: number;
+  repliesTotal: number;
+  repliesPending: number;
+  repliesApproved: number;
+  repliesRemoved: number;
+  usersRemoved: number;
+};
+
+type TrialMetrics = {
+  totalTrials: number;
+  activeTrials: number;
+  expiredTrials: number;
+  convertedTrials: number;
+  conversionRate: number;
+  avgTimeToConversion: number;
+  canceledTrials: number;
+  paidSubscribers: number;
+  invitePremium: number;
+};
+
+type TrialTimelinePoint = {
+  date: string;
+  started: number;
+  converted: number;
+  inviteActivated: number;
+};
 
 /** Normalize DB value (bigint seconds or ISO string) to ISO date string YYYY-MM-DD */
 function toDateStr(v: unknown): string | null {
@@ -35,10 +67,11 @@ function toTimeMs(v: unknown): number | null {
 export function TrialAnalyticsDashboard() {
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<any>(null);
-  const [timelineData, setTimelineData] = useState<any[]>([]);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<TrialMetrics | null>(null);
+  const [timelineData, setTimelineData] = useState<TrialTimelinePoint[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [communitySnapshot, setCommunitySnapshot] = useState<CommunityModerationSnapshot | null>(null);
   const lastTokenRef = useRef<string | null>(null);
 
   const fetchAnalytics = async () => {
@@ -68,6 +101,48 @@ export function TrialAnalyticsDashboard() {
       }
       const list = Array.isArray(data?.subscriptions) ? data.subscriptions : [];
       setSubscriptions(list);
+
+      // Community moderation analytics (admin visibility)
+      const [postsCountRes, postsPendingRes, postsApprovedRes, postsRemovedRes, repliesCountRes, repliesPendingRes, repliesApprovedRes, repliesRemovedRes, usersRemovedRes] =
+        await Promise.all([
+          supabase.from("connection_posts").select("id", { count: "exact", head: true }),
+          supabase.from("connection_posts").select("id", { count: "exact", head: true }).eq("moderation_status", "pending"),
+          supabase.from("connection_posts").select("id", { count: "exact", head: true }).eq("moderation_status", "approved"),
+          supabase.from("connection_posts").select("id", { count: "exact", head: true }).eq("moderation_status", "removed"),
+          supabase.from("connection_replies").select("id", { count: "exact", head: true }),
+          supabase.from("connection_replies").select("id", { count: "exact", head: true }).eq("moderation_status", "pending"),
+          supabase.from("connection_replies").select("id", { count: "exact", head: true }).eq("moderation_status", "approved"),
+          supabase.from("connection_replies").select("id", { count: "exact", head: true }).eq("moderation_status", "removed"),
+          supabase.from("connection_user_moderation").select("user_id", { count: "exact", head: true }).eq("is_removed", true),
+        ]);
+
+      const communityErrors = [
+        postsCountRes.error,
+        postsPendingRes.error,
+        postsApprovedRes.error,
+        postsRemovedRes.error,
+        repliesCountRes.error,
+        repliesPendingRes.error,
+        repliesApprovedRes.error,
+        repliesRemovedRes.error,
+        usersRemovedRes.error,
+      ].filter(Boolean);
+
+      if (communityErrors.length) {
+        setCommunitySnapshot(null);
+      } else {
+        setCommunitySnapshot({
+          postsTotal: postsCountRes.count ?? 0,
+          postsPending: postsPendingRes.count ?? 0,
+          postsApproved: postsApprovedRes.count ?? 0,
+          postsRemoved: postsRemovedRes.count ?? 0,
+          repliesTotal: repliesCountRes.count ?? 0,
+          repliesPending: repliesPendingRes.count ?? 0,
+          repliesApproved: repliesApprovedRes.count ?? 0,
+          repliesRemoved: repliesRemovedRes.count ?? 0,
+          usersRemoved: usersRemovedRes.count ?? 0,
+        });
+      }
 
       const now = new Date();
       const nowMs = now.getTime();
@@ -159,6 +234,7 @@ export function TrialAnalyticsDashboard() {
       setMetrics(null);
       setTimelineData([]);
       setSubscriptions([]);
+      setCommunitySnapshot(null);
       toast.error("Failed to load analytics");
     } finally {
       setLoading(false);
@@ -243,6 +319,38 @@ export function TrialAnalyticsDashboard() {
       </div>
 
       <TrialMetricsCards metrics={metrics} />
+
+      {communitySnapshot && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Community Moderation Snapshot</CardTitle>
+            <CardDescription>Live counts for community posts, replies, and moderation actions.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Posts</p>
+                <p className="text-2xl font-semibold">{communitySnapshot.postsTotal}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pending {communitySnapshot.postsPending} · Approved {communitySnapshot.postsApproved} · Removed {communitySnapshot.postsRemoved}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Replies</p>
+                <p className="text-2xl font-semibold">{communitySnapshot.repliesTotal}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pending {communitySnapshot.repliesPending} · Approved {communitySnapshot.repliesApproved} · Removed {communitySnapshot.repliesRemoved}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Removed Users</p>
+                <p className="text-2xl font-semibold">{communitySnapshot.usersRemoved}</p>
+                <p className="text-xs text-muted-foreground mt-1">Users blocked from community posting.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
