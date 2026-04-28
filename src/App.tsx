@@ -23,7 +23,7 @@ const EmailVerification = lazy(() => import("./pages/EmailVerification").then((m
 const AuthCallback = lazy(() => import("./pages/AuthCallback").then((m) => ({ default: m.AuthCallback })));
 const Demo = lazy(() => import("./pages/Demo"));
 const Help = lazy(() => import("./pages/Help"));
-const Forums = lazy(() => import("./pages/Forums"));
+const CommunityConnections = lazy(() => import("./pages/CommunityConnections"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccess"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -83,7 +83,7 @@ const App = () => (
 
               {/* Protected routes - require login, redirect to / if not authenticated */}
               <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-              <Route path="/forums" element={<ProtectedRoute><Forums /></ProtectedRoute>} />
+              <Route path="/community-connections" element={<ProtectedRoute><AuthenticatedLayout><CommunityConnections /></AuthenticatedLayout></ProtectedRoute>} />
               <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
               <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

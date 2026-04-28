@@ -169,7 +169,6 @@ const PersonalizedDashboard: React.FC = () => {
                 <Home className="h-4 w-4 mr-2" />
                 Home
               </Button>
-              <Button variant="ghost" onClick={() => window.location.href = '/forums'} className="text-green-700 hover:bg-green-50">Forums</Button>
               <Button variant="ghost" onClick={() => window.location.href = '/settings'} className="text-green-700 hover:bg-green-50">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings

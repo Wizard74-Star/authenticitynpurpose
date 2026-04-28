@@ -421,12 +421,6 @@ const Help = () => {
                 Email Support
               </Button>
             </Link>
-            <Link to="/forums">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900 gap-2 px-8">
-                <Users className="w-5 h-5" />
-                Community Forums
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
