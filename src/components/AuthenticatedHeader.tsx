@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { HelpCircle, Bell, User, LogOut, CreditCard, LayoutDashboard, Menu } from 'lucide-react';
+import { HelpCircle, Bell, User, LogOut, CreditCard, LayoutDashboard, Menu, Users } from 'lucide-react';
 import logoImg from '@/assets/images/Logo.png';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -220,6 +220,10 @@ export const AuthenticatedHeader: React.FC = () => {
                 <CreditCard className="h-4 w-4 mr-2" />
                 Subscription
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/community-connections')} className="cursor-pointer">
+                <Users className="h-4 w-4 mr-2" />
+                Community
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => signOut()}
@@ -259,6 +263,9 @@ export const AuthenticatedHeader: React.FC = () => {
                   </button>
                 ))}
                 <div className="mt-4 pt-4 border-t flex flex-col gap-2" style={{ borderColor: 'var(--landing-border)' }}>
+                  <Button variant="outline" size="sm" className="w-full justify-start hover:bg-[var(--landing-hover-bg)] hover:text-[var(--landing-primary)] hover:border-[var(--landing-primary)]" onClick={() => { setMobileMenuOpen(false); navigate('/community-connections'); }}>
+                    <Users className="h-4 w-4 mr-2" /> Community
+                  </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start hover:bg-[var(--landing-hover-bg)] hover:text-[var(--landing-primary)] hover:border-[var(--landing-primary)]" onClick={() => { setMobileMenuOpen(false); navigate('/settings'); }}>
                     <User className="h-4 w-4 mr-2" /> Profile
                   </Button>

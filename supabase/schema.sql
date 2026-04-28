@@ -102,6 +102,55 @@ CREATE TABLE IF NOT EXISTS public.forum_replies (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Community connection board with location + interest matching and moderation pipeline
+CREATE TABLE IF NOT EXISTS public.connection_posts (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  body text NOT NULL,
+  location text NOT NULL,
+  interests text[] NOT NULL DEFAULT '{}',
+  moderation_status text NOT NULL DEFAULT 'pending' CHECK (moderation_status IN ('pending', 'approved', 'removed')),
+  moderation_reason text,
+  removed_at timestamptz,
+  removed_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.connection_replies (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id uuid NOT NULL REFERENCES public.connection_posts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  parent_reply_id uuid REFERENCES public.connection_replies(id) ON DELETE CASCADE,
+  content text NOT NULL,
+  moderation_status text NOT NULL DEFAULT 'pending' CHECK (moderation_status IN ('pending', 'approved', 'removed')),
+  moderation_reason text,
+  removed_at timestamptz,
+  removed_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.connection_user_moderation (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  strike_count integer NOT NULL DEFAULT 0 CHECK (strike_count >= 0),
+  is_removed boolean NOT NULL DEFAULT false,
+  removal_reason text,
+  removed_at timestamptz,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.connection_moderation_events (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  target_table text NOT NULL CHECK (target_table IN ('connection_posts', 'connection_replies', 'connection_user_moderation')),
+  target_id uuid,
+  action text NOT NULL CHECK (action IN ('approved', 'removed', 'strike_added', 'user_removed')),
+  reason text,
+  acted_by uuid REFERENCES auth.users(id),
+  acted_on_user_id uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- =============================================================================
 -- 3. SUBSCRIPTIONS (Stripe payment integration - monthly & annual plans)
 -- =============================================================================
@@ -683,6 +732,12 @@ CREATE INDEX IF NOT EXISTS idx_forum_threads_category_id ON public.forum_threads
 CREATE INDEX IF NOT EXISTS idx_forum_threads_created_at ON public.forum_threads(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_forum_replies_thread_id ON public.forum_replies(thread_id);
 CREATE INDEX IF NOT EXISTS idx_thread_upvotes_user_id ON public.thread_upvotes(user_id);
+CREATE INDEX IF NOT EXISTS idx_connection_posts_location ON public.connection_posts(location);
+CREATE INDEX IF NOT EXISTS idx_connection_posts_status_created ON public.connection_posts(moderation_status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_connection_posts_interests_gin ON public.connection_posts USING gin(interests);
+CREATE INDEX IF NOT EXISTS idx_connection_replies_post_id ON public.connection_replies(post_id);
+CREATE INDEX IF NOT EXISTS idx_connection_replies_status_created ON public.connection_replies(moderation_status, created_at);
+CREATE INDEX IF NOT EXISTS idx_connection_user_moderation_removed ON public.connection_user_moderation(is_removed) WHERE is_removed = true;
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON public.subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON public.subscriptions(status);
@@ -765,6 +820,10 @@ ALTER TABLE public.onboarding_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.thread_upvotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connection_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connection_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connection_user_moderation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connection_moderation_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goal_collaborators ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goal_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goal_activity ENABLE ROW LEVEL SECURITY;
@@ -873,6 +932,100 @@ CREATE POLICY "Authenticated can insert forum_replies"
   ON public.forum_replies FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
+
+-- Community connections: everyone can read approved content;
+-- authors can always see and manage their own submissions.
+CREATE POLICY "Anyone can read approved connection_posts"
+  ON public.connection_posts FOR SELECT
+  USING (moderation_status = 'approved' OR auth.uid() = user_id);
+CREATE POLICY "Authenticated can insert connection_posts"
+  ON public.connection_posts FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND moderation_status = 'pending'
+    AND EXISTS (
+      SELECT 1
+      FROM public.connection_user_moderation m
+      WHERE m.user_id = auth.uid()
+        AND m.is_removed = true
+    ) IS NOT TRUE
+  );
+CREATE POLICY "Users can update own pending connection_posts"
+  ON public.connection_posts FOR UPDATE
+  USING (auth.uid() = user_id AND moderation_status = 'pending')
+  WITH CHECK (auth.uid() = user_id AND moderation_status = 'pending');
+CREATE POLICY "Users can delete own pending connection_posts"
+  ON public.connection_posts FOR DELETE
+  USING (auth.uid() = user_id AND moderation_status = 'pending');
+
+CREATE POLICY "Anyone can read approved connection_replies"
+  ON public.connection_replies FOR SELECT
+  USING (moderation_status = 'approved' OR auth.uid() = user_id);
+CREATE POLICY "Authenticated can insert connection_replies"
+  ON public.connection_replies FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND moderation_status = 'pending'
+    AND EXISTS (
+      SELECT 1
+      FROM public.connection_posts p
+      WHERE p.id = post_id
+        AND p.moderation_status = 'approved'
+    )
+    AND EXISTS (
+      SELECT 1
+      FROM public.connection_user_moderation m
+      WHERE m.user_id = auth.uid()
+        AND m.is_removed = true
+    ) IS NOT TRUE
+  );
+CREATE POLICY "Users can update own pending connection_replies"
+  ON public.connection_replies FOR UPDATE
+  USING (auth.uid() = user_id AND moderation_status = 'pending')
+  WITH CHECK (auth.uid() = user_id AND moderation_status = 'pending');
+CREATE POLICY "Users can delete own pending connection_replies"
+  ON public.connection_replies FOR DELETE
+  USING (auth.uid() = user_id AND moderation_status = 'pending');
+
+CREATE POLICY "Users can read own moderation status"
+  ON public.connection_user_moderation FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can read moderation events tied to them"
+  ON public.connection_moderation_events FOR SELECT
+  USING (auth.uid() = acted_on_user_id OR auth.uid() = acted_by);
+
+CREATE POLICY "Admins can read all connection_posts"
+  ON public.connection_posts FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+CREATE POLICY "Admins can read all connection_replies"
+  ON public.connection_replies FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+CREATE POLICY "Admins can read all connection_user_moderation"
+  ON public.connection_user_moderation FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+CREATE POLICY "Admins can read all connection_moderation_events"
+  ON public.connection_moderation_events FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+
+CREATE POLICY "Admins can moderate connection_posts"
+  ON public.connection_posts FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+CREATE POLICY "Admins can moderate connection_replies"
+  ON public.connection_replies FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+CREATE POLICY "Admins can manage connection_user_moderation"
+  ON public.connection_user_moderation FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
+CREATE POLICY "Admins can manage connection_moderation_events"
+  ON public.connection_moderation_events FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admins a WHERE lower(a.email) = lower((auth.jwt() ->> 'email'))));
 
 -- Goal collaborators, invitations, activity, tasks, comments, likes: access if owner or collaborator
 -- Simplified: allow all for goal-related tables and enforce in app or add stricter policies
@@ -1095,6 +1248,10 @@ BEGIN
   CREATE TRIGGER set_journal_entries_updated_at BEFORE UPDATE ON public.journal_entries FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   DROP TRIGGER IF EXISTS set_forum_threads_updated_at ON public.forum_threads;
   CREATE TRIGGER set_forum_threads_updated_at BEFORE UPDATE ON public.forum_threads FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  DROP TRIGGER IF EXISTS set_connection_posts_updated_at ON public.connection_posts;
+  CREATE TRIGGER set_connection_posts_updated_at BEFORE UPDATE ON public.connection_posts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  DROP TRIGGER IF EXISTS set_connection_user_moderation_updated_at ON public.connection_user_moderation;
+  CREATE TRIGGER set_connection_user_moderation_updated_at BEFORE UPDATE ON public.connection_user_moderation FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   DROP TRIGGER IF EXISTS set_subscriptions_updated_at ON public.subscriptions;
   CREATE TRIGGER set_subscriptions_updated_at BEFORE UPDATE ON public.subscriptions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   DROP TRIGGER IF EXISTS set_calendar_events_updated_at ON public.calendar_events;
