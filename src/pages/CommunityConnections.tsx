@@ -44,8 +44,10 @@ type UserIdentity = {
 
 const POSTING_RULES = [
   "Posts are for positive community connection only.",
-  "No politics, religion, harassment, or bullying.",
-  "Agenda pushing, repeated abuse, or spam leads to removal.",
+  "No politics.",
+  "All religions and beliefs are welcome, with no debating about which one is chosen.",
+  "No harassment, shaming, or bullying.",
+  "Agenda pushing, repeated abuse, or spam leads to removal. Repeat offenders can and will be removed from the app.",
   "Posts require admin approval. Replies appear immediately unless removed by moderation.",
 ];
 const RULES_IGNORE_KEY = "community_rules_ignore_until";
