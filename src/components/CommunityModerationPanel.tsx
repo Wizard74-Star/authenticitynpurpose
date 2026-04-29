@@ -27,6 +27,7 @@ type ConnectionPost = {
   title: string;
   body: string;
   location: string;
+  location_tags?: string[];
   interests: string[];
   moderation_status: ModerationStatus;
   created_at: string;
@@ -185,6 +186,7 @@ export function CommunityModerationPanel() {
         post.title.toLowerCase().includes(normalizedQuery) ||
         post.body.toLowerCase().includes(normalizedQuery) ||
         post.location.toLowerCase().includes(normalizedQuery) ||
+        (post.location_tags ?? []).some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
         userLabel.includes(normalizedQuery) ||
         email.includes(normalizedQuery)
       );
@@ -548,7 +550,7 @@ export function CommunityModerationPanel() {
                     <Badge variant={post.moderation_status === "pending" ? "secondary" : "outline"}>{post.moderation_status}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mb-1">
-                    {post.location} · by {getUserLabel(post.user_id)} · {new Date(post.created_at).toLocaleString()}
+                    {(post.location_tags?.length ? post.location_tags.join(", ") : post.location)} · by {getUserLabel(post.user_id)} · {new Date(post.created_at).toLocaleString()}
                   </p>
                   <p className="text-xs text-muted-foreground mb-2">{getUserEmail(post.user_id)}</p>
                   <p className="text-sm mb-3 whitespace-pre-wrap">{post.body}</p>

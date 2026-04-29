@@ -22,6 +22,7 @@ type ConnectionPost = {
   title: string;
   body: string;
   location: string;
+  location_tags?: string[];
   interests: string[];
   moderation_status: ModerationStatus;
   created_at: string;
@@ -52,6 +53,15 @@ const POSTING_RULES = [
 ];
 const RULES_IGNORE_KEY = "community_rules_ignore_until";
 const RULES_IGNORE_DURATION_MS = 24 * 60 * 60 * 1000;
+const LOCATION_GROUPS: Record<string, string[]> = {
+  "All Countries": ["United States", "Canada", "Mexico"],
+  Americas: ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia"],
+  Europe: ["United Kingdom", "France", "Germany", "Italy", "Spain", "Netherlands", "Sweden"],
+  Asia: ["India", "China", "Japan", "South Korea", "Singapore", "Thailand", "Indonesia"],
+  "West Asia": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Jordan", "Lebanon", "Turkey"],
+  Africa: ["South Africa", "Nigeria", "Kenya", "Egypt", "Morocco", "Ghana"],
+  Oceania: ["Australia", "New Zealand"],
+};
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
@@ -69,7 +79,8 @@ export default function CommunityConnections() {
 
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
-  const [newLocation, setNewLocation] = useState("");
+  const [selectedLocationTags, setSelectedLocationTags] = useState<string[]>([]);
+  const [customLocationText, setCustomLocationText] = useState("");
   const [newInterests, setNewInterests] = useState("");
   const [replyBody, setReplyBody] = useState("");
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
@@ -196,11 +207,21 @@ export default function CommunityConnections() {
   };
 
   const getAuthorEmail = (userId: string) => identitiesById[userId]?.email ?? "No email";
+  const toggleLocationTag = (tag: string) => {
+    setSelectedLocationTags((prev) => (prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]));
+  };
 
-  const allLocations = useMemo(
-    () => Array.from(new Set(posts.map((post) => post.location).filter(Boolean))).sort(),
-    [posts],
-  );
+  const allLocations = useMemo(() => {
+    return Array.from(
+      new Set(
+        posts.flatMap((post) => {
+          const tags = post.location_tags ?? [];
+          if (tags.length) return tags;
+          return post.location ? [post.location] : [];
+        }),
+      ),
+    ).sort();
+  }, [posts]);
 
   const allInterests = useMemo(
     () => Array.from(new Set(posts.flatMap((post) => post.interests ?? []))).sort(),
@@ -216,7 +237,8 @@ export default function CommunityConnections() {
         post.location.toLowerCase().includes(query.toLowerCase()) ||
         post.interests.some((interest) => interest.toLowerCase().includes(query.toLowerCase()));
 
-      const matchesLocation = locationFilter === "all" || post.location === locationFilter;
+      const locationTags = post.location_tags?.length ? post.location_tags : [post.location];
+      const matchesLocation = locationFilter === "all" || locationTags.includes(locationFilter);
       const matchesInterest = interestFilter === "all" || post.interests.includes(interestFilter);
       return matchesQuery && matchesLocation && matchesInterest;
     });
@@ -257,12 +279,21 @@ export default function CommunityConnections() {
       if (!interests.length) {
         throw new Error("Add at least one interest tag.");
       }
+      const customTags = customLocationText
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const locationTags = Array.from(new Set([...selectedLocationTags, ...customTags]));
+      if (!locationTags.length) {
+        throw new Error("Select at least one location option or add a custom location.");
+      }
 
       const { error } = await supabase.from("connection_posts").insert({
         user_id: userId,
         title: newTitle.trim(),
         body: newBody.trim(),
-        location: newLocation.trim(),
+        location: locationTags[0],
+        location_tags: locationTags,
         interests,
       });
 
@@ -270,7 +301,8 @@ export default function CommunityConnections() {
 
       setNewTitle("");
       setNewBody("");
-      setNewLocation("");
+      setSelectedLocationTags([]);
+      setCustomLocationText("");
       setNewInterests("");
       toast.success("Post submitted for moderation approval.");
       setCreateDialogOpen(false);
@@ -367,7 +399,9 @@ export default function CommunityConnections() {
         <Card className="mb-6 border-[var(--landing-border)] bg-[var(--landing-accent)]/70">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{selectedPost.location}</Badge>
+              {(selectedPost.location_tags?.length ? selectedPost.location_tags : [selectedPost.location]).map((locationTag) => (
+                <Badge key={locationTag} variant="outline">{locationTag}</Badge>
+              ))}
               {selectedPost.interests.map((interest) => (
                 <Badge key={interest}>{interest}</Badge>
               ))}
@@ -535,13 +569,35 @@ export default function CommunityConnections() {
                 maxLength={120}
                 required
               />
-              <Input
-                value={newLocation}
-                onChange={(event) => setNewLocation(event.target.value)}
-                placeholder="Location (city, state, or area)"
-                maxLength={80}
-                required
-              />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Locations (multi-select)</p>
+                <div className="max-h-48 overflow-y-auto rounded-md border p-3 space-y-3">
+                  {Object.entries(LOCATION_GROUPS).map(([group, countries]) => (
+                    <div key={group}>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">{group}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {countries.map((country) => (
+                          <Button
+                            key={country}
+                            type="button"
+                            size="sm"
+                            variant={selectedLocationTags.includes(country) ? "default" : "outline"}
+                            onClick={() => toggleLocationTag(country)}
+                          >
+                            {country}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Input
+                  value={customLocationText}
+                  onChange={(event) => setCustomLocationText(event.target.value)}
+                  placeholder="Custom location(s), comma-separated (optional)"
+                  maxLength={200}
+                />
+              </div>
               <Input
                 value={newInterests}
                 onChange={(event) => setNewInterests(event.target.value)}
@@ -632,10 +688,12 @@ export default function CommunityConnections() {
                     onClick={() => setSelectedPost(post)}
                   >
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="bg-white">
-                        <MapPin className="mr-1 h-3 w-3" />
-                        {post.location}
-                      </Badge>
+                      {(post.location_tags?.length ? post.location_tags : [post.location]).slice(0, 3).map((locationTag) => (
+                        <Badge key={locationTag} variant="outline" className="bg-white">
+                          <MapPin className="mr-1 h-3 w-3" />
+                          {locationTag}
+                        </Badge>
+                      ))}
                       {(post.interests ?? []).slice(0, 3).map((interest) => (
                         <Badge key={interest}>{interest}</Badge>
                       ))}
