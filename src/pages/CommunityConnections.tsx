@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Filter, MapPin, MessageCircle, PlusCircle, ShieldAlert, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, Filter, MapPin, MessageCircle, PlusCircle, ShieldAlert, Sparkles, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import communityHeroImg from "@/assets/images/Community.jpg";
@@ -41,6 +41,12 @@ type UserIdentity = {
   username: string | null;
   fullName: string | null;
   email: string | null;
+};
+type ConnectionCategory = {
+  id: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
 };
 
 const POSTING_RULES = [
@@ -118,6 +124,7 @@ const LOCATION_GROUPS: Record<string, string[]> = {
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
+const DEFAULT_CATEGORY = "all";
 
 export default function CommunityConnections() {
   const POSTS_PAGE_SIZE = 6;
@@ -128,7 +135,7 @@ export default function CommunityConnections() {
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
-  const [interestFilter, setInterestFilter] = useState("all");
+  const [interestFilters, setInterestFilters] = useState<string[]>([DEFAULT_CATEGORY]);
 
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
@@ -142,6 +149,11 @@ export default function CommunityConnections() {
   const [identitiesById, setIdentitiesById] = useState<Record<string, UserIdentity>>({});
   const [postsPage, setPostsPage] = useState(1);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<ConnectionCategory[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
 
   const loadUserIdentities = useCallback(async (userIds: string[]) => {
     const ids = Array.from(new Set(userIds)).filter(Boolean);
@@ -208,6 +220,33 @@ export default function CommunityConnections() {
     setLoading(false);
   }, [loadUserIdentities]);
 
+  const loadCategories = useCallback(async () => {
+    if (!currentUserId) {
+      setCategories([{ id: "default-all", name: DEFAULT_CATEGORY, created_by: null, created_at: new Date(0).toISOString() }]);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("connection_categories")
+      .select("*")
+      .or(`created_by.eq.${currentUserId},name.eq.${DEFAULT_CATEGORY}`)
+      .order("name", { ascending: true });
+    if (error) {
+      toast.error("Unable to load categories.");
+      return;
+    }
+    const loaded = ((data ?? []) as ConnectionCategory[]).sort((a, b) => {
+      if (a.name.toLowerCase() === DEFAULT_CATEGORY) return -1;
+      if (b.name.toLowerCase() === DEFAULT_CATEGORY) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    const hasDefault = loaded.some((category) => category.name.toLowerCase() === DEFAULT_CATEGORY);
+    setCategories(
+      hasDefault
+        ? loaded
+        : [{ id: "default-all", name: DEFAULT_CATEGORY, created_by: null, created_at: new Date(0).toISOString() }, ...loaded],
+    );
+  }, [currentUserId]);
+
   const loadReplies = useCallback(async (postId: string) => {
     const { data, error } = await supabase
       .from("connection_replies")
@@ -241,9 +280,14 @@ export default function CommunityConnections() {
   useEffect(() => {
     void (async () => {
       const { data } = await supabase.auth.getUser();
-      setCurrentUserId(data.user?.id ?? null);
+      const user = data.user;
+      setCurrentUserId(user?.id ?? null);
     })();
   }, []);
+
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
 
   useEffect(() => {
     if (selectedPost) {
@@ -292,10 +336,12 @@ export default function CommunityConnections() {
 
       const locationTags = post.location_tags?.length ? post.location_tags : [post.location];
       const matchesLocation = locationFilter === "all" || locationTags.includes(locationFilter);
-      const matchesInterest = interestFilter === "all" || post.interests.includes(interestFilter);
+      const matchesInterest =
+        interestFilters.includes(DEFAULT_CATEGORY) ||
+        interestFilters.some((interestFilter) => post.interests.includes(interestFilter));
       return matchesQuery && matchesLocation && matchesInterest;
     });
-  }, [posts, query, locationFilter, interestFilter]);
+  }, [posts, query, locationFilter, interestFilters]);
 
   const pagedPosts = useMemo(() => {
     const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PAGE_SIZE));
@@ -318,6 +364,82 @@ export default function CommunityConnections() {
       ),
     );
 
+  const toggleCategory = (name: string) => {
+    setSelectedCategories((prev) => (prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]));
+  };
+
+  const toggleInterestFilter = (name: string) => {
+    const normalized = name.toLowerCase();
+    setInterestFilters((prev) => {
+      if (normalized === DEFAULT_CATEGORY) {
+        return [DEFAULT_CATEGORY];
+      }
+      const withoutAll = prev.filter((value) => value.toLowerCase() !== DEFAULT_CATEGORY);
+      const exists = withoutAll.includes(name);
+      const next = exists ? withoutAll.filter((value) => value !== name) : [...withoutAll, name];
+      return next.length ? next : [DEFAULT_CATEGORY];
+    });
+    setPostsPage(1);
+  };
+
+  const handleCreateCategory = async (event: FormEvent) => {
+    event.preventDefault();
+    const normalized = newCategoryName.trim();
+    const normalizedLower = normalized.toLowerCase();
+    if (!normalized) {
+      toast.error("Enter a category name.");
+      return;
+    }
+    if (normalized.length > 60) {
+      toast.error("Category name must be 60 characters or fewer.");
+      return;
+    }
+    if (normalizedLower === DEFAULT_CATEGORY) {
+      toast.error("The 'all' category already exists.");
+      return;
+    }
+    setCategorySubmitting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("You must be signed in to add categories.");
+      const { error } = await supabase.from("connection_categories").insert({
+        name: normalized,
+        created_by: userId,
+      });
+      if (error) throw error;
+      setNewCategoryName("");
+      if (!selectedCategories.includes(normalized)) {
+        setSelectedCategories((prev) => [...prev, normalized]);
+      }
+      toast.success("Category added.");
+      await loadCategories();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Unable to add category."));
+    } finally {
+      setCategorySubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async (category: ConnectionCategory) => {
+    if (category.name.toLowerCase() === DEFAULT_CATEGORY) {
+      toast.error("The 'all' category cannot be deleted.");
+      return;
+    }
+    setDeletingCategoryId(category.id);
+    try {
+      const { error } = await supabase.from("connection_categories").delete().eq("id", category.id);
+      if (error) throw error;
+      setSelectedCategories((prev) => prev.filter((item) => item !== category.name));
+      toast.success("Category deleted.");
+      await loadCategories();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Unable to delete category."));
+    } finally {
+      setDeletingCategoryId(null);
+    }
+  };
+
   const handleCreatePost = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
@@ -328,9 +450,9 @@ export default function CommunityConnections() {
         throw new Error("You must be signed in to post.");
       }
 
-      const interests = parseInterests(newInterests);
+      const interests = Array.from(new Set([...selectedCategories, ...parseInterests(newInterests)]));
       if (!interests.length) {
-        throw new Error("Add at least one interest tag.");
+        throw new Error("Select or add at least one category.");
       }
       const customTags = customLocationText
         .split(",")
@@ -357,6 +479,7 @@ export default function CommunityConnections() {
       setSelectedLocationTags([]);
       setCustomLocationText("");
       setNewInterests("");
+      setSelectedCategories([]);
       toast.success("Post submitted for moderation approval.");
       setCreateDialogOpen(false);
       await loadPosts();
@@ -577,7 +700,7 @@ export default function CommunityConnections() {
           </div>
           <h1 className="text-3xl font-bold text-white sm:text-4xl">Community Connection Board</h1>
           <p className="mt-2 max-w-3xl text-sm text-white/90 sm:text-base">
-            Connect by location and shared interests. This space is built for positive support, practical advice, and meaningful local collaboration.
+            Connect by location and shared interests. This space is built for positive support, practical advice, and meaningful local collaboration. Remember our battle is not against flesh and blood, but against the rulers and authorities of this dark world.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Badge variant="outline" className="border-white/40 bg-white/20 text-white">
@@ -598,7 +721,19 @@ export default function CommunityConnections() {
 
       <div className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex justify-end">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <form className="flex flex-wrap items-center gap-2" onSubmit={handleCreateCategory}>
+              <Input
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                placeholder="Suggest a category"
+                maxLength={60}
+                className="w-56"
+              />
+              <Button type="submit" variant="outline" disabled={categorySubmitting}>
+                {categorySubmitting ? "Adding..." : "Add Category"}
+              </Button>
+            </form>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               New Post
@@ -651,13 +786,45 @@ export default function CommunityConnections() {
                   maxLength={200}
                 />
               </div>
-              <Input
-                value={newInterests}
-                onChange={(event) => setNewInterests(event.target.value)}
-                placeholder="Interests (comma-separated)"
-                maxLength={200}
-                required
-              />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Categories</p>
+                <div className="rounded-md border p-3">
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <div key={category.id} className="inline-flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={selectedCategories.includes(category.name) ? "default" : "outline"}
+                          onClick={() => toggleCategory(category.name)}
+                        >
+                          {category.name}
+                        </Button>
+                        {category.name.toLowerCase() !== DEFAULT_CATEGORY && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => void handleDeleteCategory(category)}
+                            disabled={deletingCategoryId === category.id}
+                            aria-label={`Delete ${category.name}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {!categories.length && <p className="text-xs text-muted-foreground">No categories yet. Add one above.</p>}
+                  </div>
+                  <Input
+                    value={newInterests}
+                    onChange={(event) => setNewInterests(event.target.value)}
+                    placeholder="Optional extra categories (comma-separated)"
+                    maxLength={200}
+                  />
+                </div>
+              </div>
               <Textarea
                 value={newBody}
                 onChange={(event) => setNewBody(event.target.value)}
@@ -683,6 +850,44 @@ export default function CommunityConnections() {
             <CardDescription>Filter by location or interest and join an ongoing thread.</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 rounded-lg border bg-white/60 p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">Community Categories</p>
+                <p className="text-xs text-muted-foreground">
+                  You can add categories and delete only your own categories.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <div key={category.id} className="inline-flex items-center gap-1">
+                    <Badge
+                      className={`cursor-pointer gap-1 ${
+                        category.name.toLowerCase() === DEFAULT_CATEGORY ? "inline-flex items-center justify-center px-2.5" : "pr-1"
+                      }`}
+                      variant={interestFilters.includes(category.name) ? "default" : "secondary"}
+                      onClick={() => toggleInterestFilter(category.name)}
+                    >
+                      <span>{category.name}</span>
+                      {category.name.toLowerCase() !== DEFAULT_CATEGORY && (
+                        <button
+                          type="button"
+                          className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-black/15"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDeleteCategory(category);
+                          }}
+                          disabled={deletingCategoryId === category.id}
+                          aria-label={`Delete ${category.name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </Badge>
+                  </div>
+                ))}
+                {!categories.length && <p className="text-xs text-muted-foreground">No categories created yet.</p>}
+              </div>
+            </div>
             <div className="mb-4 grid gap-3 md:grid-cols-3">
               <Input
                 value={query}
@@ -708,22 +913,11 @@ export default function CommunityConnections() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={interestFilter} onValueChange={(value) => {
-                setInterestFilter(value);
-                setPostsPage(1);
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter interest" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All interests</SelectItem>
-                  {allInterests.map((interest) => (
-                    <SelectItem key={interest} value={interest}>
-                      {interest}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="rounded-md border bg-white/50 px-3 py-2 text-sm text-muted-foreground">
+                {interestFilters.includes(DEFAULT_CATEGORY)
+                  ? "Category filter: all"
+                  : `Category filter: ${interestFilters.join(", ")}`}
+              </div>
             </div>
 
             <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
