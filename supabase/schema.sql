@@ -323,8 +323,13 @@ WHERE email = 'admin@gad.com'
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username text,
+  community_display_name text,
   timezone text,
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT profiles_community_display_name_length CHECK (
+    community_display_name IS NULL
+    OR (char_length(trim(community_display_name)) BETWEEN 2 AND 40)
+  )
 );
 
 CREATE INDEX IF NOT EXISTS idx_profiles_id ON public.profiles(id);

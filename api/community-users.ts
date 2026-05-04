@@ -59,12 +59,34 @@ export default async function handler(req: Req, res: Res) {
   });
 
   try {
+    const { data: profileRows } = await service
+      .from("profiles")
+      .select("id, username, community_display_name")
+      .in("id", userIds);
+
+    const profileById = new Map(
+      (profileRows ?? []).map((row: { id: string; username: string | null; community_display_name: string | null }) => [
+        row.id,
+        {
+          username: row.username ?? null,
+          community_display_name: row.community_display_name?.trim() || null,
+        },
+      ]),
+    );
+
     const users = await Promise.all(
       userIds.map(async (id) => {
         const { data, error } = await service.auth.admin.getUserById(id);
         if (error || !data.user) return null;
         const fullName = (data.user.user_metadata as { full_name?: string } | undefined)?.full_name ?? null;
-        return { id, email: data.user.email ?? null, full_name: fullName };
+        const prof = profileById.get(id);
+        return {
+          id,
+          email: data.user.email ?? null,
+          full_name: fullName,
+          username: prof?.username ?? null,
+          community_display_name: prof?.community_display_name ?? null,
+        };
       }),
     );
     res.status(200).json({ users: users.filter(Boolean) });

@@ -53,6 +53,7 @@ type UserModeration = {
 type UserProfile = {
   id: string;
   username: string | null;
+  community_display_name: string | null;
 };
 
 type DecisionAction =
@@ -128,7 +129,7 @@ export function CommunityModerationPanel() {
     if (ids.length > 0) {
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, username")
+        .select("id, username, community_display_name")
         .in("id", ids);
 
       const nextProfilesById = (profilesData ?? []).reduce<Record<string, UserProfile>>((acc, profile) => {
@@ -167,6 +168,8 @@ export function CommunityModerationPanel() {
 
   const getUserLabel = useCallback((userId: string) => {
     const profile = profilesById[userId];
+    const nick = profile?.community_display_name?.trim();
+    if (nick) return nick;
     if (profile?.username) return `@${profile.username}`;
     return `User ${userId.slice(0, 8)}`;
   }, [profilesById]);
@@ -494,7 +497,7 @@ export function CommunityModerationPanel() {
                   setReplyPage(1);
                   setUserPage(1);
                 }}
-                placeholder="Search by title, content, username, email, or user ID"
+                placeholder="Search by title, content, nickname, username, email, or user ID"
               />
             </div>
             <Input

@@ -38,6 +38,7 @@ type ConnectionReply = {
   created_at: string;
 };
 type UserIdentity = {
+  communityDisplayName: string | null;
   username: string | null;
   fullName: string | null;
   email: string | null;
@@ -51,6 +52,7 @@ type ConnectionCategory = {
 
 const POSTING_RULES = [
   "Posts are for positive community connection only.",
+  "Set your community nickname under Settings → Profile so the board shows that name instead of your account name.",
   "No politics.",
   "All religions and beliefs are welcome, with no debating about which one is chosen.",
   "No harassment, shaming, or bullying.",
@@ -159,15 +161,15 @@ export default function CommunityConnections() {
     const ids = Array.from(new Set(userIds)).filter(Boolean);
     if (!ids.length) return;
 
-    const { data: profiles } = await supabase.from("profiles").select("id, username").in("id", ids);
-    const profileMap = (profiles ?? []).reduce<Record<string, { username: string | null }>>((acc, item) => {
-      acc[item.id] = { username: item.username ?? null };
-      return acc;
-    }, {});
-
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    let apiUsers: { id: string; email: string | null; full_name: string | null }[] = [];
+    let apiUsers: {
+      id: string;
+      email: string | null;
+      full_name: string | null;
+      username: string | null;
+      community_display_name: string | null;
+    }[] = [];
     if (token) {
       const res = await fetch("/api/community-users", {
         method: "POST",
@@ -176,7 +178,13 @@ export default function CommunityConnections() {
       });
       if (res.ok) {
         const payload = (await res.json().catch(() => ({}))) as {
-          users?: { id: string; email: string | null; full_name: string | null }[];
+          users?: {
+            id: string;
+            email: string | null;
+            full_name: string | null;
+            username: string | null;
+            community_display_name: string | null;
+          }[];
         };
         apiUsers = payload.users ?? [];
       }
@@ -187,7 +195,8 @@ export default function CommunityConnections() {
       ids.forEach((id) => {
         const apiUser = apiUsers.find((u) => u.id === id);
         nextMap[id] = {
-          username: profileMap[id]?.username ?? null,
+          communityDisplayName: apiUser?.community_display_name?.trim() || null,
+          username: apiUser?.username ?? null,
           fullName: apiUser?.full_name ?? null,
           email: apiUser?.email ?? null,
         };
@@ -298,7 +307,7 @@ export default function CommunityConnections() {
   const getAuthorName = (userId: string) => {
     const identity = identitiesById[userId];
     if (!identity) return "Community member";
-    if (identity.fullName) return identity.fullName;
+    if (identity.communityDisplayName) return identity.communityDisplayName;
     if (identity.username) return `@${identity.username}`;
     return "Community member";
   };
