@@ -42,6 +42,7 @@ type UserIdentity = {
   username: string | null;
   fullName: string | null;
   email: string | null;
+  isSeedAccount: boolean;
 };
 type ConnectionCategory = {
   id: string;
@@ -58,6 +59,7 @@ const POSTING_RULES = [
   "No harassment, shaming, or bullying.",
   "Agenda pushing, repeated abuse, or spam leads to removal. Repeat offenders can and will be removed from the app.",
   "Posts require admin approval. Replies appear immediately and can be moderated afterwards.",
+  "Some early discussions are hosted by community guides to help the board feel welcoming until more members join.",
 ];
 const RULES_IGNORE_KEY = "community_rules_ignore_until";
 const RULES_IGNORE_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -169,6 +171,7 @@ export default function CommunityConnections() {
       full_name: string | null;
       username: string | null;
       community_display_name: string | null;
+      is_seed_account?: boolean;
     }[] = [];
     if (token) {
       const res = await fetch("/api/community-users", {
@@ -184,6 +187,7 @@ export default function CommunityConnections() {
             full_name: string | null;
             username: string | null;
             community_display_name: string | null;
+            is_seed_account?: boolean;
           }[];
         };
         apiUsers = payload.users ?? [];
@@ -199,6 +203,7 @@ export default function CommunityConnections() {
           username: apiUser?.username ?? null,
           fullName: apiUser?.full_name ?? null,
           email: apiUser?.email ?? null,
+          isSeedAccount: apiUser?.is_seed_account === true,
         };
       });
       return nextMap;
@@ -237,7 +242,7 @@ export default function CommunityConnections() {
     const { data, error } = await supabase
       .from("connection_categories")
       .select("*")
-      .or(`created_by.eq.${currentUserId},name.eq.${DEFAULT_CATEGORY}`)
+      .or(`created_by.eq.${currentUserId},is_system.eq.true,name.eq.${DEFAULT_CATEGORY}`)
       .order("name", { ascending: true });
     if (error) {
       toast.error("Unable to load categories.");
@@ -312,7 +317,17 @@ export default function CommunityConnections() {
     return "Community member";
   };
 
-  const getAuthorEmail = (userId: string) => identitiesById[userId]?.email ?? "No email";
+  const getAuthorEmail = (userId: string) => {
+    const identity = identitiesById[userId];
+    if (!identity || identity.isSeedAccount) return null;
+    return identity.email;
+  };
+
+  const getAuthorLine = (userId: string) => {
+    const name = getAuthorName(userId);
+    const email = getAuthorEmail(userId);
+    return email ? `${name} · ${email}` : name;
+  };
   const toggleLocationTag = (tag: string) => {
     setSelectedLocationTags((prev) => (prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]));
   };
@@ -511,17 +526,36 @@ export default function CommunityConnections() {
         throw new Error("You must be signed in to reply.");
       }
 
-      const { error } = await supabase.from("connection_replies").insert({
-        post_id: selectedPost.id,
-        user_id: userId,
-        content: replyBody.trim(),
-        moderation_status: "approved",
-      });
+      const { data: insertedReply, error } = await supabase
+        .from("connection_replies")
+        .insert({
+          post_id: selectedPost.id,
+          user_id: userId,
+          content: replyBody.trim(),
+          moderation_status: "approved",
+        })
+        .select("id")
+        .single();
       if (error) throw error;
 
       setReplyBody("");
       toast.success("Reply posted.");
       await loadReplies(selectedPost.id);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (token && insertedReply?.id) {
+        try {
+          await fetch("/api/community-engage", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ post_id: selectedPost.id, human_reply_id: insertedReply.id }),
+          });
+          await loadReplies(selectedPost.id);
+        } catch {
+          /* guide reply is best-effort */
+        }
+      }
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Unable to post reply."));
     } finally {
@@ -620,7 +654,7 @@ export default function CommunityConnections() {
                   }`}
                 >
                   <p className={`mb-1 text-xs ${reply.user_id === currentUserId ? "text-white/80" : "text-muted-foreground"}`}>
-                    {getAuthorName(reply.user_id)} · {getAuthorEmail(reply.user_id)}
+                    {getAuthorLine(reply.user_id)}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
                   <p className={`mt-2 text-[11px] ${reply.user_id === currentUserId ? "text-white/70" : "text-muted-foreground"}`}>
@@ -957,7 +991,7 @@ export default function CommunityConnections() {
                     </div>
                     <h3 className="font-semibold">{post.title}</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {getAuthorName(post.user_id)} · {getAuthorEmail(post.user_id)}
+                      {getAuthorLine(post.user_id)}
                     </p>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{post.body}</p>
                     <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">

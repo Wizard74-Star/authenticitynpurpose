@@ -61,17 +61,25 @@ export default async function handler(req: Req, res: Res) {
   try {
     const { data: profileRows } = await service
       .from("profiles")
-      .select("id, username, community_display_name")
+      .select("id, username, community_display_name, is_seed_account")
       .in("id", userIds);
 
     const profileById = new Map(
-      (profileRows ?? []).map((row: { id: string; username: string | null; community_display_name: string | null }) => [
-        row.id,
-        {
-          username: row.username ?? null,
-          community_display_name: row.community_display_name?.trim() || null,
-        },
-      ]),
+      (profileRows ?? []).map(
+        (row: {
+          id: string;
+          username: string | null;
+          community_display_name: string | null;
+          is_seed_account: boolean | null;
+        }) => [
+          row.id,
+          {
+            username: row.username ?? null,
+            community_display_name: row.community_display_name?.trim() || null,
+            is_seed_account: row.is_seed_account === true,
+          },
+        ],
+      ),
     );
 
     const users = await Promise.all(
@@ -80,12 +88,14 @@ export default async function handler(req: Req, res: Res) {
         if (error || !data.user) return null;
         const fullName = (data.user.user_metadata as { full_name?: string } | undefined)?.full_name ?? null;
         const prof = profileById.get(id);
+        const isSeed = prof?.is_seed_account === true;
         return {
           id,
-          email: data.user.email ?? null,
-          full_name: fullName,
+          email: isSeed ? null : data.user.email ?? null,
+          full_name: isSeed ? null : fullName,
           username: prof?.username ?? null,
           community_display_name: prof?.community_display_name ?? null,
+          is_seed_account: isSeed,
         };
       }),
     );

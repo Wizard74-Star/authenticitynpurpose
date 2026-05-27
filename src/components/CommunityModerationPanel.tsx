@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,6 +18,16 @@ import {
 } from "@/components/ui/pagination";
 import { Eye, Search, ShieldAlert, Trash2, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 type ModerationStatus = "pending" | "approved" | "removed";
@@ -30,6 +41,7 @@ type ConnectionPost = {
   location_tags?: string[];
   interests: string[];
   moderation_status: ModerationStatus;
+  is_synthetic?: boolean;
   created_at: string;
 };
 
@@ -39,6 +51,7 @@ type ConnectionReply = {
   user_id: string;
   content: string;
   moderation_status: ModerationStatus;
+  is_synthetic?: boolean;
   created_at: string;
 };
 
@@ -54,6 +67,7 @@ type UserProfile = {
   id: string;
   username: string | null;
   community_display_name: string | null;
+  is_seed_account?: boolean;
 };
 
 type DecisionAction =
@@ -81,6 +95,14 @@ export function CommunityModerationPanel() {
   const [selectedPostForReplies, setSelectedPostForReplies] = useState<ConnectionPost | null>(null);
   const [decisionAction, setDecisionAction] = useState<DecisionAction | null>(null);
   const [decisionReason, setDecisionReason] = useState("");
+  const [removingSynthetic, setRemovingSynthetic] = useState(false);
+  const [addingSynthetic, setAddingSynthetic] = useState(false);
+  const [addSyntheticDialogOpen, setAddSyntheticDialogOpen] = useState(false);
+  const [removeSyntheticDialogOpen, setRemoveSyntheticDialogOpen] = useState(false);
+  const [guidePostCount, setGuidePostCount] = useState("3");
+
+  const GUIDE_POST_COUNT_MIN = 1;
+  const GUIDE_POST_COUNT_MAX = 50;
 
   const userIds = useMemo(() => {
     const postUsers = posts.map((post) => post.user_id);
@@ -129,7 +151,7 @@ export function CommunityModerationPanel() {
     if (ids.length > 0) {
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, username, community_display_name")
+        .select("id, username, community_display_name, is_seed_account")
         .in("id", ids);
 
       const nextProfilesById = (profilesData ?? []).reduce<Record<string, UserProfile>>((acc, profile) => {
@@ -166,12 +188,68 @@ export function CommunityModerationPanel() {
     void loadAll();
   }, [loadAll]);
 
+  const removeAllSyntheticContent = async () => {
+    if (!session?.access_token) return;
+    setRemovingSynthetic(true);
+    try {
+      const res = await fetch("/api/admin-remove-community-synthetic", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? "Request failed");
+      }
+      toast.success("Community guide content removed.");
+      setRemoveSyntheticDialogOpen(false);
+      await loadAll();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not remove guide content.");
+    } finally {
+      setRemovingSynthetic(false);
+    }
+  };
+
+  const addGuideSyntheticContent = async () => {
+    if (!session?.access_token) return;
+    const parsed = parseInt(guidePostCount, 10);
+    const postCount = Number.isFinite(parsed)
+      ? Math.min(GUIDE_POST_COUNT_MAX, Math.max(GUIDE_POST_COUNT_MIN, parsed))
+      : 3;
+    setAddingSynthetic(true);
+    try {
+      const res = await fetch("/api/admin-add-community-synthetic", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ postCount }),
+      });
+      const payload = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        postsAdded?: number;
+        repliesAdded?: number;
+      };
+      if (!res.ok) {
+        throw new Error(payload.error ?? "Request failed");
+      }
+      toast.success(payload.message ?? `Added ${payload.postsAdded ?? 0} post(s) and ${payload.repliesAdded ?? 0} reply(ies).`);
+      setAddSyntheticDialogOpen(false);
+      await loadAll();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not add guide content.");
+    } finally {
+      setAddingSynthetic(false);
+    }
+  };
+
   const getUserLabel = useCallback((userId: string) => {
     const profile = profilesById[userId];
     const nick = profile?.community_display_name?.trim();
-    if (nick) return nick;
-    if (profile?.username) return `@${profile.username}`;
-    return `User ${userId.slice(0, 8)}`;
+    const base = nick ? nick : profile?.username ? `@${profile.username}` : `User ${userId.slice(0, 8)}`;
+    return profile?.is_seed_account ? `${base} (guide)` : base;
   }, [profilesById]);
 
   const getUserEmail = useCallback((userId: string) => emailsById[userId] ?? "No email", [emailsById]);
@@ -506,8 +584,91 @@ export function CommunityModerationPanel() {
               placeholder="Optional moderation reason"
             />
           </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="default"
+              disabled={addingSynthetic || removingSynthetic || loading}
+              onClick={() => setAddSyntheticDialogOpen(true)}
+            >
+              {addingSynthetic ? "Adding guide content…" : "Add guide posts & replies"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={addingSynthetic || removingSynthetic || loading}
+              onClick={() => setRemoveSyntheticDialogOpen(true)}
+            >
+              {removingSynthetic ? "Removing guide content…" : "Remove all guide posts & replies"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={addSyntheticDialogOpen} onOpenChange={setAddSyntheticDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add guide posts and replies?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Adds up to the number of guide posts you choose (missing catalog threads first, then random posts).
+              Replies are added automatically in a random amount on new and existing guide threads. Timestamps fall
+              between now and the latest guide activity.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Label htmlFor="guide-post-count">Number of guide posts to add</Label>
+            <Input
+              id="guide-post-count"
+              type="number"
+              min={GUIDE_POST_COUNT_MIN}
+              max={GUIDE_POST_COUNT_MAX}
+              value={guidePostCount}
+              onChange={(event) => setGuidePostCount(event.target.value)}
+              disabled={addingSynthetic}
+              className="mt-2"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {GUIDE_POST_COUNT_MIN}–{GUIDE_POST_COUNT_MAX} posts. Reply count is chosen at random each time.
+            </p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={addingSynthetic}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={addingSynthetic}
+              onClick={(event) => {
+                event.preventDefault();
+                void addGuideSyntheticContent();
+              }}
+            >
+              {addingSynthetic ? "Adding…" : "Add guide content"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={removeSyntheticDialogOpen} onOpenChange={setRemoveSyntheticDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove all guide content?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes every guide post and reply. Real member posts and replies are kept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removingSynthetic}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={removingSynthetic}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void removeAllSyntheticContent();
+              }}
+            >
+              {removingSynthetic ? "Removing…" : "Remove all"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Tabs defaultValue="posts" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
@@ -550,7 +711,10 @@ export function CommunityModerationPanel() {
                 <div key={post.id} className="rounded-lg border p-3">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <h4 className="font-medium">{post.title}</h4>
-                    <Badge variant={post.moderation_status === "pending" ? "secondary" : "outline"}>{post.moderation_status}</Badge>
+                    <div className="flex gap-1">
+                      {post.is_synthetic && <Badge variant="secondary">guide</Badge>}
+                      <Badge variant={post.moderation_status === "pending" ? "secondary" : "outline"}>{post.moderation_status}</Badge>
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-1">
                     {(post.location_tags?.length ? post.location_tags.join(", ") : post.location)} · by {getUserLabel(post.user_id)} · {new Date(post.created_at).toLocaleString()}

@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS public.connection_posts (
   location text NOT NULL,
   interests text[] NOT NULL DEFAULT '{}',
   moderation_status text NOT NULL DEFAULT 'pending' CHECK (moderation_status IN ('pending', 'approved', 'removed')),
+  is_synthetic boolean NOT NULL DEFAULT false,
   moderation_reason text,
   removed_at timestamptz,
   removed_by uuid REFERENCES auth.users(id),
@@ -125,6 +126,7 @@ CREATE TABLE IF NOT EXISTS public.connection_replies (
   parent_reply_id uuid REFERENCES public.connection_replies(id) ON DELETE CASCADE,
   content text NOT NULL,
   moderation_status text NOT NULL DEFAULT 'pending' CHECK (moderation_status IN ('pending', 'approved', 'removed')),
+  is_synthetic boolean NOT NULL DEFAULT false,
   moderation_reason text,
   removed_at timestamptz,
   removed_by uuid REFERENCES auth.users(id),
@@ -324,6 +326,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username text,
   community_display_name text,
+  is_seed_account boolean NOT NULL DEFAULT false,
   timezone text,
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT profiles_community_display_name_length CHECK (
