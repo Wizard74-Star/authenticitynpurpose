@@ -425,14 +425,6 @@ export default function Dashboard() {
     () => gratitudeEntries.find((g) => g.date === selectedIso),
     [gratitudeEntries, selectedIso]
   );
-  const appreciationSummaryKey = useMemo(
-    () =>
-      gratitudeEntries
-        .filter((e) => (e.content ?? '').trim())
-        .map((e) => `${e.id}:${e.content?.length ?? 0}`)
-        .join('|'),
-    [gratitudeEntries],
-  );
   const journalForDate = useMemo(
     () => journalEntries.find((j) => j.date === selectedIso),
     [journalEntries, selectedIso]
@@ -1277,11 +1269,7 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
               onRemoveCustomSection={(date, sectionKey) => deleteGratitudeBySection(date, sectionKey)}
               useLandingStyles
             />
-            <AppreciationAiSummary
-              refreshKey={appreciationSummaryKey}
-              entries={gratitudeEntries}
-              useLandingStyles
-            />
+            <AppreciationAiSummary entries={gratitudeEntries} useLandingStyles />
           </section>
 
           {/* Journal — life journal (separate from appreciation) */}

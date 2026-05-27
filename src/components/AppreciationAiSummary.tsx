@@ -9,8 +9,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const EMPTY_HINT =
   "Once you save a few appreciations in the categories above, we can reflect on what they say about your values and strengths.";
 
+const STORAGE_KEY_PREFIX = "appreciation-ai-summary:";
+
+type StoredSummary = {
+  summary: string;
+  isEmptyHint: boolean;
+};
+
+function storageKey(userId: string) {
+  return `${STORAGE_KEY_PREFIX}${userId}`;
+}
+
+function readStoredSummary(userId: string): StoredSummary | null {
+  try {
+    const raw = localStorage.getItem(storageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSummary;
+    if (typeof parsed.summary !== "string") return null;
+    return { summary: parsed.summary, isEmptyHint: Boolean(parsed.isEmptyHint) };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSummary(userId: string, data: StoredSummary) {
+  try {
+    localStorage.setItem(storageKey(userId), JSON.stringify(data));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 type AppreciationAiSummaryProps = {
-  refreshKey: string;
   entries: ManifestationGratitude[];
   useLandingStyles?: boolean;
 };
@@ -32,7 +62,6 @@ function buildPayload(entries: ManifestationGratitude[]) {
 }
 
 export function AppreciationAiSummary({
-  refreshKey,
   entries,
   useLandingStyles = true,
 }: AppreciationAiSummaryProps) {
@@ -40,6 +69,40 @@ export function AppreciationAiSummary({
   const [isEmptyHint, setIsEmptyHint] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+
+    const applySession = (id: string | undefined) => {
+      if (cancelled) return;
+      if (!id) {
+        setSummary(null);
+        setIsEmptyHint(false);
+        return;
+      }
+      const stored = readStoredSummary(id);
+      if (stored) {
+        setSummary(stored.summary);
+        setIsEmptyHint(stored.isEmptyHint);
+        setError(null);
+      } else {
+        setSummary(null);
+        setIsEmptyHint(false);
+      }
+    };
+
+    void supabase.auth.getSession().then(({ data }) => {
+      applySession(data.session?.user?.id);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session?.user?.id);
+    });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
@@ -78,6 +141,10 @@ export function AppreciationAiSummary({
       const empty = body.empty === true || text === EMPTY_HINT;
       setIsEmptyHint(empty);
       setSummary(text);
+      const uid = sessionData.session?.user?.id;
+      if (text && uid) {
+        writeStoredSummary(uid, { summary: text, isEmptyHint: empty });
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not load summary");
       setSummary(null);
@@ -86,10 +153,6 @@ export function AppreciationAiSummary({
       setLoading(false);
     }
   }, [entries]);
-
-  useEffect(() => {
-    void loadSummary();
-  }, [refreshKey, loadSummary]);
 
   const borderClass = useLandingStyles ? "border-[var(--landing-border)]" : "border-gray-200";
   const textClass = useLandingStyles ? "text-[var(--landing-text)]" : "text-gray-900";
@@ -113,7 +176,8 @@ export function AppreciationAiSummary({
           </Button>
         </div>
         <CardDescription>
-          An AI reflection based on everything you have saved in your appreciation categories.
+          An AI reflection based on everything you have saved in your appreciation categories. Click Refresh
+          after you save changes to generate or update it.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -124,6 +188,11 @@ export function AppreciationAiSummary({
           </p>
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {!loading && !summary && !error && (
+          <p className={`text-sm italic opacity-80 ${textClass}`}>
+            Click Refresh to generate your appreciation reflection.
+          </p>
+        )}
         {summary && (
           <div
             className={`text-sm leading-relaxed whitespace-pre-wrap ${

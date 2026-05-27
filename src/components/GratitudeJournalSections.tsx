@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Heart, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,13 +69,10 @@ export function GratitudeJournalSections({
   const [newSectionName, setNewSectionName] = useState('');
   const [showAddSection, setShowAddSection] = useState(false);
   const [savingSection, setSavingSection] = useState<string | null>(null);
-  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     setLocalContent({});
     setAddedCustomKeys([]);
-    Object.values(saveTimersRef.current).forEach(clearTimeout);
-    saveTimersRef.current = {};
   }, [date]);
 
   const bySection = useMemo(
@@ -135,26 +132,23 @@ export function GratitudeJournalSections({
     [date, onSaveSection],
   );
 
-  const scheduleSave = (sectionKey: string, sectionLabel: string | null, content: string) => {
-    if (saveTimersRef.current[sectionKey]) {
-      clearTimeout(saveTimersRef.current[sectionKey]);
-    }
-    saveTimersRef.current[sectionKey] = setTimeout(() => {
-      void persistSection(sectionKey, sectionLabel, content.trim());
-    }, 800);
-  };
-
   const handleBlur = (sectionKey: string, sectionLabel: string | null, content: string) => {
-    if (saveTimersRef.current[sectionKey]) {
-      clearTimeout(saveTimersRef.current[sectionKey]);
-      delete saveTimersRef.current[sectionKey];
+    const trimmed = content.trim();
+    const saved = (bySection.get(sectionKey)?.content ?? '').trim();
+    if (trimmed === saved) {
+      setLocalContent((prev) => {
+        if (prev[sectionKey] === undefined) return prev;
+        const next = { ...prev };
+        delete next[sectionKey];
+        return next;
+      });
+      return;
     }
-    void persistSection(sectionKey, sectionLabel, content.trim());
+    void persistSection(sectionKey, sectionLabel, trimmed);
   };
 
-  const handleChange = (sectionKey: string, sectionLabel: string | null, value: string) => {
+  const handleChange = (sectionKey: string, value: string) => {
     setLocalContent((prev) => ({ ...prev, [sectionKey]: value }));
-    scheduleSave(sectionKey, sectionLabel, value);
   };
 
   const handleAddCustom = () => {
@@ -198,7 +192,7 @@ export function GratitudeJournalSections({
           </h3>
         </div>
         <p className={`text-sm opacity-90 mb-1 ${textClass}`}>
-          Write in each of the 7 categories. Add custom sections if you want. Your entries save automatically.
+          Write in each of the 7 categories. Add custom sections if you want. Click outside a field to save.
         </p>
         <p className={`text-xs opacity-75 mb-4 ${textClass}`}>
           Showing: {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
@@ -220,9 +214,7 @@ export function GratitudeJournalSections({
               <Textarea
                 placeholder="Write here..."
                 value={getContent(key)}
-                onChange={(e) =>
-                  handleChange(key, key.startsWith('custom-') ? label : null, e.target.value)
-                }
+                onChange={(e) => handleChange(key, e.target.value)}
                 onBlur={(e) =>
                   handleBlur(
                     key,
