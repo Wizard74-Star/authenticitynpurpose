@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getGratitudeSectionLabel } from '@/data/gratitudeSections';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStorageMode } from '@/contexts/StorageModeContext';
 import { sendTransactionalEmail } from '@/lib/sendTransactionalEmail';
@@ -71,6 +72,28 @@ export interface ManifestationJournalEntry {
 }
 
 const JOURNAL_PHOTOS_BUCKET = 'progress-photos';
+
+function normalizeGratitudeSectionKey(sectionKey: string): string {
+  const trimmed = sectionKey.trim();
+  return trimmed || 'general';
+}
+
+function findGratitudeBySection(
+  entries: ManifestationGratitude[],
+  date: string,
+  sectionKey: string,
+): ManifestationGratitude | undefined {
+  const key = normalizeGratitudeSectionKey(sectionKey);
+  return entries.find((e) => {
+    if (e.date !== date) return false;
+    return normalizeGratitudeSectionKey(e.sectionKey ?? 'general') === key;
+  });
+}
+
+function resolveGratitudeSectionLabel(sectionKey: string, sectionLabel: string | null): string | null {
+  if (sectionKey.startsWith('custom-')) return sectionLabel?.trim() || null;
+  return getGratitudeSectionLabel(sectionKey);
+}
 
 const IMAGE_EXT_TO_MIME: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -866,50 +889,138 @@ export function useManifestationDatabase() {
   };
 
   const upsertGratitudeSection = async (date: string, sectionKey: string, sectionLabel: string | null, content: string) => {
-    const existing = gratitudeEntries.find((e) => e.date === date && (e.sectionKey ?? 'general') === sectionKey);
-    if (existing) return updateGratitude(existing.id, content);
+    const normalizedKey = normalizeGratitudeSectionKey(sectionKey);
+    const label = resolveGratitudeSectionLabel(normalizedKey, sectionLabel);
+    const trimmed = content.trim();
+    const existing = findGratitudeBySection(gratitudeEntries, date, normalizedKey);
+
+    if (!trimmed) {
+      if (existing) {
+        await updateGratitude(existing.id, '', normalizedKey, label);
+      }
+      return;
+    }
+
+    if (existing) {
+      return updateGratitude(existing.id, trimmed, normalizedKey, label);
+    }
+
     if (useLocalStorageOnly) {
-      const data: ManifestationGratitude = { id: crypto.randomUUID(), content, date, sectionKey, sectionLabel: sectionLabel ?? undefined };
-      setGratitudeEntries(prev => {
+      const data: ManifestationGratitude = {
+        id: crypto.randomUUID(),
+        content: trimmed,
+        date,
+        sectionKey: normalizedKey,
+        sectionLabel: label ?? undefined,
+      };
+      setGratitudeEntries((prev) => {
         const next = [data, ...prev];
         persistDemo({ goals, todos, gratitudeEntries: next, journalEntries, totalPoints: totalPoints + 5, streak: streak + 1 });
         return next;
       });
-      setTotalPoints(p => p + 5);
-      setStreak(s => s + 1);
+      setTotalPoints((p) => p + 5);
+      setStreak((s) => s + 1);
       return;
     }
     if (!user) return;
-    const { data, error } = await supabase.from('manifestation_gratitude_entries').insert({
-      user_id: user.id,
-      content,
-      date,
-      section_key: sectionKey,
-      section_label: sectionLabel,
-    }).select('id,date,section_key,section_label').single();
-    if (error) throw error;
-    setGratitudeEntries(prev => [{ id: data.id, content, date: data.date, sectionKey: data.section_key ?? undefined, sectionLabel: data.section_label ?? undefined }, ...prev]);
+
+    const { data, error } = await supabase
+      .from('manifestation_gratitude_entries')
+      .insert({
+        user_id: user.id,
+        content: trimmed,
+        date,
+        section_key: normalizedKey,
+        section_label: label,
+      })
+      .select('id, date, section_key, section_label, content')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        const { data: rows } = await supabase
+          .from('manifestation_gratitude_entries')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('date', date)
+          .eq('section_key', normalizedKey)
+          .maybeSingle();
+        if (rows?.id) {
+          await updateGratitude(rows.id as string, trimmed, normalizedKey, label);
+          return;
+        }
+      }
+      throw error;
+    }
+
+    const row = data as { id: string; date: string; section_key: string; section_label: string | null; content: string };
+    setGratitudeEntries((prev) => {
+      const withoutDup = prev.filter(
+        (e) => !(e.date === date && normalizeGratitudeSectionKey(e.sectionKey ?? 'general') === normalizedKey),
+      );
+      return [
+        {
+          id: row.id,
+          content: row.content ?? trimmed,
+          date: row.date,
+          sectionKey: row.section_key,
+          sectionLabel: row.section_label ?? undefined,
+        },
+        ...withoutDup,
+      ];
+    });
     await updateStats(5, 1);
   };
 
   const updateGratitudeSectionByKey = async (date: string, sectionKey: string, sectionLabel: string | null, content: string) => {
-    const existing = gratitudeEntries.find((e) => e.date === date && (e.sectionKey ?? '') === sectionKey);
-    if (existing) return updateGratitude(existing.id, content);
     return upsertGratitudeSection(date, sectionKey, sectionLabel, content);
   };
 
-  const updateGratitude = async (id: string, content: string) => {
+  const updateGratitude = async (
+    id: string,
+    content: string,
+    sectionKey?: string,
+    sectionLabel?: string | null,
+  ) => {
     if (useLocalStorageOnly) {
-      setGratitudeEntries(prev => {
-        const next = prev.map((e) => (e.id === id ? { ...e, content } : e));
+      setGratitudeEntries((prev) => {
+        const next = prev.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                content,
+                ...(sectionKey ? { sectionKey, sectionLabel: sectionLabel ?? e.sectionLabel } : {}),
+              }
+            : e,
+        );
         persistDemo({ goals, todos, gratitudeEntries: next, journalEntries, totalPoints, streak });
         return next;
       });
       return;
     }
     if (!user) return;
-    await supabase.from('manifestation_gratitude_entries').update({ content }).eq('id', id);
-    setGratitudeEntries(prev => prev.map((e) => (e.id === id ? { ...e, content } : e)));
+    const payload: { content: string; section_key?: string; section_label?: string | null } = { content };
+    if (sectionKey) {
+      payload.section_key = normalizeGratitudeSectionKey(sectionKey);
+      payload.section_label = sectionLabel ?? null;
+    }
+    const { error } = await supabase
+      .from('manifestation_gratitude_entries')
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (error) throw error;
+    setGratitudeEntries((prev) =>
+      prev.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              content,
+              ...(sectionKey ? { sectionKey: normalizeGratitudeSectionKey(sectionKey), sectionLabel: sectionLabel ?? undefined } : {}),
+            }
+          : e,
+      ),
+    );
   };
 
   const deleteGratitude = async (id: string) => {
@@ -927,7 +1038,7 @@ export function useManifestationDatabase() {
   };
 
   const deleteGratitudeBySection = async (date: string, sectionKey: string) => {
-    const existing = gratitudeEntries.find((e) => e.date === date && (e.sectionKey ?? '') === sectionKey);
+    const existing = findGratitudeBySection(gratitudeEntries, date, sectionKey);
     if (!existing) return;
     return deleteGratitude(existing.id);
   };

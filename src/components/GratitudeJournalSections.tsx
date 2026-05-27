@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Heart, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,11 @@ interface GratitudeJournalSectionsProps {
   compact?: boolean;
 }
 
+function sectionKeyForEntry(sectionKey?: string | null): string {
+  const trimmed = (sectionKey ?? '').trim();
+  return trimmed || 'general';
+}
+
 function getEntriesBySection(
   date: string,
   entries: ManifestationGratitude[]
@@ -44,7 +49,7 @@ function getEntriesBySection(
   entries
     .filter((e) => e.date === date)
     .forEach((e) => {
-      const key = e.sectionKey ?? 'general';
+      const key = sectionKeyForEntry(e.sectionKey);
       map.set(key, { content: e.content ?? '', id: e.id });
     });
   return map;
@@ -63,6 +68,15 @@ export function GratitudeJournalSections({
   const [addedCustomKeys, setAddedCustomKeys] = useState<{ key: string; label: string }[]>([]);
   const [newSectionName, setNewSectionName] = useState('');
   const [showAddSection, setShowAddSection] = useState(false);
+  const [savingSection, setSavingSection] = useState<string | null>(null);
+  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    setLocalContent({});
+    setAddedCustomKeys([]);
+    Object.values(saveTimersRef.current).forEach(clearTimeout);
+    saveTimersRef.current = {};
+  }, [date]);
 
   const bySection = useMemo(
     () => getEntriesBySection(date, entries),
@@ -109,24 +123,38 @@ export function GratitudeJournalSections({
     return saved?.content ?? '';
   };
 
-  const handleBlur = (
-    sectionKey: string,
-    sectionLabel: string | null,
-    content: string
-  ) => {
-    const t = content.trim();
-    onSaveSection(date, sectionKey, sectionLabel, t);
-    if (t === '' && localContent[sectionKey] !== undefined) {
-      setLocalContent((prev) => {
-        const next = { ...prev };
-        delete next[sectionKey];
-        return next;
-      });
+  const persistSection = useCallback(
+    async (sectionKey: string, sectionLabel: string | null, content: string) => {
+      setSavingSection(sectionKey);
+      try {
+        await onSaveSection(date, sectionKey, sectionLabel, content);
+      } finally {
+        setSavingSection((current) => (current === sectionKey ? null : current));
+      }
+    },
+    [date, onSaveSection],
+  );
+
+  const scheduleSave = (sectionKey: string, sectionLabel: string | null, content: string) => {
+    if (saveTimersRef.current[sectionKey]) {
+      clearTimeout(saveTimersRef.current[sectionKey]);
     }
+    saveTimersRef.current[sectionKey] = setTimeout(() => {
+      void persistSection(sectionKey, sectionLabel, content.trim());
+    }, 800);
   };
 
-  const handleChange = (sectionKey: string, value: string) => {
+  const handleBlur = (sectionKey: string, sectionLabel: string | null, content: string) => {
+    if (saveTimersRef.current[sectionKey]) {
+      clearTimeout(saveTimersRef.current[sectionKey]);
+      delete saveTimersRef.current[sectionKey];
+    }
+    void persistSection(sectionKey, sectionLabel, content.trim());
+  };
+
+  const handleChange = (sectionKey: string, sectionLabel: string | null, value: string) => {
     setLocalContent((prev) => ({ ...prev, [sectionKey]: value }));
+    scheduleSave(sectionKey, sectionLabel, value);
   };
 
   const handleAddCustom = () => {
@@ -169,8 +197,12 @@ export function GratitudeJournalSections({
             Appreciate
           </h3>
         </div>
-        <p className={`text-sm opacity-90 mb-4 ${textClass}`}>
-          Write in each of the 7 categories. Add custom sections if you want. Works on computer, tablet, and phone.
+        <p className={`text-sm opacity-90 mb-1 ${textClass}`}>
+          Write in each of the 7 categories. Add custom sections if you want. Your entries save automatically.
+        </p>
+        <p className={`text-xs opacity-75 mb-4 ${textClass}`}>
+          Showing: {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+          {savingSection ? ' · Saving…' : ''}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
@@ -188,7 +220,9 @@ export function GratitudeJournalSections({
               <Textarea
                 placeholder="Write here..."
                 value={getContent(key)}
-                onChange={(e) => handleChange(key, e.target.value)}
+                onChange={(e) =>
+                  handleChange(key, key.startsWith('custom-') ? label : null, e.target.value)
+                }
                 onBlur={(e) =>
                   handleBlur(
                     key,

@@ -66,6 +66,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { GratitudeJournalSections } from '@/components/GratitudeJournalSections';
+import { AppreciationAiSummary } from '@/components/AppreciationAiSummary';
 import { JournalEntryForm } from '@/components/JournalEntryForm';
 import { BudgetSpentEditDialog } from '@/components/BudgetSpentEditDialog';
 import type { DemoGoalGenerated } from '@/data/demoOnboardingMockData';
@@ -423,6 +424,14 @@ export default function Dashboard() {
   const gratitudeForDate = useMemo(
     () => gratitudeEntries.find((g) => g.date === selectedIso),
     [gratitudeEntries, selectedIso]
+  );
+  const appreciationSummaryKey = useMemo(
+    () =>
+      gratitudeEntries
+        .filter((e) => (e.content ?? '').trim())
+        .map((e) => `${e.id}:${e.content?.length ?? 0}`)
+        .join('|'),
+    [gratitudeEntries],
   );
   const journalForDate = useMemo(
     () => journalEntries.find((j) => j.date === selectedIso),
@@ -1248,14 +1257,29 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
           {/* Appreciate */}
           <section id="gratitude" className="scroll-mt-24 sm:scroll-mt-28">
             <GratitudeJournalSections
-              date={todayIso}
+              date={selectedIso}
               entries={gratitudeEntries}
-              onSaveSection={(date, sectionKey, sectionLabel, content) => {
-                updateGratitudeSectionByKey(date, sectionKey, sectionLabel, content).then(() => {
-                  if (content) toast({ title: 'Saved', description: 'Appreciation saved.' });
-                });
+              onSaveSection={async (date, sectionKey, sectionLabel, content) => {
+                try {
+                  await updateGratitudeSectionByKey(date, sectionKey, sectionLabel, content);
+                  if (content.trim()) {
+                    toast({ title: 'Saved', description: 'Appreciation saved.' });
+                  }
+                } catch (e: unknown) {
+                  toast({
+                    title: 'Could not save',
+                    description: e instanceof Error ? e.message : 'Please try again.',
+                    variant: 'destructive',
+                  });
+                  throw e;
+                }
               }}
               onRemoveCustomSection={(date, sectionKey) => deleteGratitudeBySection(date, sectionKey)}
+              useLandingStyles
+            />
+            <AppreciationAiSummary
+              refreshKey={appreciationSummaryKey}
+              entries={gratitudeEntries}
               useLandingStyles
             />
           </section>
