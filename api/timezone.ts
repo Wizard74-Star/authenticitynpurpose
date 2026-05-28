@@ -12,12 +12,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Client IP: Vercel sets these; fallback for local dev
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = typeof forwarded === 'string'
-    ? forwarded.split(',')[0].trim()
-    : req.socket?.remoteAddress ?? req.headers['x-real-ip'] ?? '';
-
-  const clientIp = ip || undefined;
+  const headerIp = (value: string | string[] | undefined): string => {
+    if (typeof value === 'string') return value.split(',')[0]?.trim() ?? '';
+    if (Array.isArray(value) && value[0]) return String(value[0]).trim();
+    return '';
+  };
+  const ip =
+    headerIp(req.headers['x-forwarded-for']) ||
+    (typeof req.socket?.remoteAddress === 'string' ? req.socket.remoteAddress : '') ||
+    headerIp(req.headers['x-real-ip']);
+  const clientIp = ip.length > 0 ? ip : undefined;
 
   try {
     // ip-api.com: free, returns timezone from IP (e.g. "America/Los_Angeles")

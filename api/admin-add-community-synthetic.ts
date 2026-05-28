@@ -1,19 +1,21 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   GUIDE_POST_CATALOG,
   GUIDE_REPLY_CATALOG,
   postDedupeKey,
   replyDedupeKey,
-} from "./lib/communitySyntheticCatalog";
+} from "./lib/communitySyntheticCatalog.js";
 import {
   generateRandomPosts,
   generateRandomRepliesForPosts,
   generateRandomRepliesOnExisting,
-} from "./lib/communitySyntheticGenerator";
-import { getSyntheticTimestampRange, replyTimestampAfterPost, staggerTimestamps, toIso } from "./lib/communitySyntheticTime";
-import type { GuidePostSeed, GuideReplySeed } from "./lib/communitySyntheticCatalog";
+} from "./lib/communitySyntheticGenerator.js";
+import { getSyntheticTimestampRange, replyTimestampAfterPost, staggerTimestamps, toIso } from "./lib/communitySyntheticTime.js";
+import type { GuidePostSeed, GuideReplySeed } from "./lib/communitySyntheticCatalog.js";
 
-async function isAdmin(service: ReturnType<typeof createClient>, email: string | undefined): Promise<boolean> {
+type ServiceClient = SupabaseClient<any>;
+
+async function isAdmin(service: ServiceClient, email: string | undefined): Promise<boolean> {
   const normalized = (email ?? "").trim().toLowerCase();
   if (!normalized) return false;
   const { data: rows } = await service.from("admins").select("email");
@@ -23,7 +25,7 @@ async function isAdmin(service: ReturnType<typeof createClient>, email: string |
 type TitlePost = { id: string; title: string; created_at: string; createdMs: number; user_id: string };
 
 async function insertPosts(
-  service: ReturnType<typeof createClient>,
+  service: ServiceClient,
   postsToAdd: GuidePostSeed[],
   postTimes: number[],
   maxMs: number,
@@ -65,7 +67,7 @@ async function insertPosts(
 }
 
 async function insertReplies(
-  service: ReturnType<typeof createClient>,
+  service: ServiceClient,
   repliesToAdd: GuideReplySeed[],
   titleToPost: Map<string, TitlePost>,
   minMs: number,

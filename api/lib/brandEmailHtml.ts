@@ -1,4 +1,4 @@
-import { appBaseUrl } from './resendEmail';
+import { appBaseUrl } from './resendEmail.js';
 
 export function escHtml(s: string): string {
   return s

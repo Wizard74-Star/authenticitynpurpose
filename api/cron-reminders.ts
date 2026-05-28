@@ -9,8 +9,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import * as admin from 'firebase-admin';
-import { sendResendEmail } from './lib/resendEmail';
-import { scheduledReminderEmailHtml } from './lib/brandEmailHtml';
+import { sendResendEmail } from './lib/resendEmail.js';
+import { scheduledReminderEmailHtml } from './lib/brandEmailHtml.js';
 
 type Req = {
   method?: string;
@@ -185,8 +185,15 @@ export default async function handler(req: Req, res: Res): Promise<void> {
         subject: 'A quiet reminder from Authenticity & Purpose',
         html: scheduledReminderEmailHtml(reminder.message),
       });
-      if (er.ok) emailOk = true;
-      else console.error('Resend error for reminder', reminder.id, er.error);
+      if (er.ok) {
+        emailOk = true;
+      } else {
+        console.error(
+          'Resend error for reminder',
+          reminder.id,
+          er.ok === false ? er.error : 'Email send failed',
+        );
+      }
     }
 
     if (pushOk || emailOk) {

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { pickInterestForPost, pickReactiveReply } from "./lib/communityEngage";
+import { pickInterestForPost, pickReactiveReply } from "./lib/communityEngage.js";
 
 type Req = {
   method?: string;

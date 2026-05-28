@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendResendEmail, appBaseUrl } from './lib/resendEmail';
-import { getSupabaseService } from './lib/supabaseService';
-import { brandTransactionalHtml, escHtml } from './lib/brandEmailHtml';
+import { sendResendEmail, appBaseUrl } from './lib/resendEmail.js';
+import { getSupabaseService } from './lib/supabaseService.js';
+import { brandTransactionalHtml, escHtml } from './lib/brandEmailHtml.js';
 
 type Req = {
   method?: string;
@@ -127,7 +127,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
       html,
     });
     if (!r.ok) {
-      res.status(502).json({ error: r.error });
+      res.status(502).json({ error: r.ok === false ? r.error : 'Email send failed' });
       return;
     }
     if (service) {
@@ -305,7 +305,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
   const r = await sendResendEmail({ to, subject, html });
   if (!r.ok) {
-    res.status(502).json({ error: r.error });
+    res.status(502).json({ error: r.ok === false ? r.error : 'Email send failed' });
     return;
   }
   res.status(200).json({ ok: true });

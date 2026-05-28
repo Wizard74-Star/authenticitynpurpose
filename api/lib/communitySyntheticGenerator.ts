@@ -1,7 +1,7 @@
-import type { GuidePostSeed, GuideReplySeed } from "./communitySyntheticCatalog";
-import { SEED_PERSONA_IDS, postDedupeKey, replyDedupeKey } from "./communitySyntheticCatalog";
+import type { GuidePostSeed, GuideReplySeed } from "./communitySyntheticCatalog.js";
+import { SEED_PERSONA_IDS, postDedupeKey, replyDedupeKey } from "./communitySyntheticCatalog.js";
 
-const PERSONA_IDS = Object.values(SEED_PERSONA_IDS);
+const PERSONA_IDS: string[] = Object.values(SEED_PERSONA_IDS);
 
 const INTERESTS = ["Spiritual", "Healthy living", "Recovery", "Awakening", "Quantum mysticism"] as const;
 

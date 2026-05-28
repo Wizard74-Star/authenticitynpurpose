@@ -1,6 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-async function isAdmin(service: ReturnType<typeof createClient>, email: string | undefined): Promise<boolean> {
+type ServiceClient = SupabaseClient<any>;
+
+async function isAdmin(service: ServiceClient, email: string | undefined): Promise<boolean> {
   const normalized = (email ?? "").trim().toLowerCase();
   if (!normalized) return false;
   const { data: rows } = await service.from("admins").select("email");
