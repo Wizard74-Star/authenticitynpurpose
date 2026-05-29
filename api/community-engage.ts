@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { pickInterestForPost, pickReactiveReply } from "./lib/communityEngage.js";
+import { reactToMemberReply } from "./lib/communityGuideService.js";
 
 type Req = {
   method?: string;
@@ -12,15 +12,6 @@ type Res = {
   setHeader: (k: string, v: string) => void;
 };
 
-const SEED_PERSONA_IDS = [
-  "f47ac10b-58cc-4372-a567-0e02b2c3d601",
-  "f47ac10b-58cc-4372-a567-0e02b2c3d602",
-  "f47ac10b-58cc-4372-a567-0e02b2c3d603",
-  "f47ac10b-58cc-4372-a567-0e02b2c3d604",
-  "f47ac10b-58cc-4372-a567-0e02b2c3d605",
-  "f47ac10b-58cc-4372-a567-0e02b2c3d606",
-];
-
 export default async function handler(req: Req, res: Res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -32,11 +23,6 @@ export default async function handler(req: Req, res: Res) {
   }
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  if (process.env.COMMUNITY_BOT_REPLY_ENABLED === "false") {
-    res.status(200).json({ skipped: true, reason: "disabled" });
     return;
   }
 
@@ -69,92 +55,24 @@ export default async function handler(req: Req, res: Res) {
     return;
   }
 
-  const humanUserId = authData.user.id;
   const service = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data: humanProfile } = await service
-    .from("profiles")
-    .select("is_seed_account")
-    .eq("id", humanUserId)
-    .maybeSingle();
-  if (humanProfile?.is_seed_account) {
-    res.status(200).json({ skipped: true, reason: "seed_account" });
+  const result = await reactToMemberReply(service, {
+    postId,
+    humanReplyId,
+    humanUserId: authData.user.id,
+  });
+
+  if ("error" in result && result.error) {
+    const status = result.error.includes("not found") ? 404 : result.error.includes("Invalid") ? 400 : 500;
+    res.status(status).json({ error: result.error });
     return;
   }
-
-  const { data: post, error: postError } = await service
-    .from("connection_posts")
-    .select("id, interests, moderation_status")
-    .eq("id", postId)
-    .maybeSingle();
-  if (postError || !post || post.moderation_status !== "approved") {
-    res.status(404).json({ error: "Post not found or not approved" });
+  if ("skipped" in result) {
+    res.status(200).json(result);
     return;
   }
-
-  const { data: humanReply, error: replyError } = await service
-    .from("connection_replies")
-    .select("id, user_id, post_id, is_synthetic, created_at")
-    .eq("id", humanReplyId)
-    .maybeSingle();
-  if (replyError || !humanReply || humanReply.post_id !== postId || humanReply.user_id !== humanUserId) {
-    res.status(400).json({ error: "Invalid human reply" });
-    return;
-  }
-  if (humanReply.is_synthetic) {
-    res.status(200).json({ skipped: true, reason: "synthetic_reply" });
-    return;
-  }
-
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  const { data: recentSynthetic } = await service
-    .from("connection_replies")
-    .select("id")
-    .eq("post_id", postId)
-    .eq("is_synthetic", true)
-    .gte("created_at", fiveMinutesAgo)
-    .limit(1);
-  if ((recentSynthetic ?? []).length > 0) {
-    res.status(200).json({ skipped: true, reason: "rate_limited" });
-    return;
-  }
-
-  const { count: syntheticCount } = await service
-    .from("connection_replies")
-    .select("id", { count: "exact", head: true })
-    .eq("post_id", postId)
-    .eq("is_synthetic", true);
-  if ((syntheticCount ?? 0) >= 12) {
-    res.status(200).json({ skipped: true, reason: "thread_cap" });
-    return;
-  }
-
-  const interest = pickInterestForPost((post.interests as string[]) ?? []);
-  const content = pickReactiveReply(interest, humanReplyId.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
-
-  const personaId = SEED_PERSONA_IDS[Math.abs(humanReplyId.charCodeAt(0)) % SEED_PERSONA_IDS.length];
-  const botUserId = personaId === humanUserId
-    ? SEED_PERSONA_IDS[(SEED_PERSONA_IDS.indexOf(personaId) + 1) % SEED_PERSONA_IDS.length]
-    : personaId;
-
-  const { data: inserted, error: insertError } = await service
-    .from("connection_replies")
-    .insert({
-      post_id: postId,
-      user_id: botUserId,
-      content,
-      moderation_status: "approved",
-      is_synthetic: true,
-    })
-    .select("id")
-    .single();
-
-  if (insertError) {
-    res.status(500).json({ error: insertError.message });
-    return;
-  }
-
-  res.status(200).json({ ok: true, reply_id: inserted?.id });
+  res.status(200).json(result);
 }

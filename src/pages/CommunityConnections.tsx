@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Filter, MapPin, MessageCircle, PlusCircle, ShieldAlert, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, Filter, Loader2, MapPin, MessageCircle, PlusCircle, ShieldAlert, Sparkles, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import communityHeroImg from "@/assets/images/Community.jpg";
@@ -25,6 +25,7 @@ type ConnectionPost = {
   location_tags?: string[];
   interests: string[];
   moderation_status: ModerationStatus;
+  is_synthetic?: boolean;
   created_at: string;
 };
 
@@ -35,6 +36,7 @@ type ConnectionReply = {
   content: string;
   parent_reply_id: string | null;
   moderation_status: ModerationStatus;
+  is_synthetic?: boolean;
   created_at: string;
 };
 type UserIdentity = {
@@ -158,6 +160,7 @@ export default function CommunityConnections() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categorySubmitting, setCategorySubmitting] = useState(false);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [guideTyping, setGuideTyping] = useState(false);
 
   const loadUserIdentities = useCallback(async (userIds: string[]) => {
     const ids = Array.from(new Set(userIds)).filter(Boolean);
@@ -306,6 +309,8 @@ export default function CommunityConnections() {
   useEffect(() => {
     if (selectedPost) {
       void loadReplies(selectedPost.id);
+    } else {
+      setGuideTyping(false);
     }
   }, [selectedPost, loadReplies]);
 
@@ -328,6 +333,12 @@ export default function CommunityConnections() {
     const email = getAuthorEmail(userId);
     return email ? `${name} · ${email}` : name;
   };
+
+  const isGuideAuthor = (userId: string) => identitiesById[userId]?.isSeedAccount === true;
+
+  const isGuidePost = (post: ConnectionPost) => post.is_synthetic === true || isGuideAuthor(post.user_id);
+
+  const isGuideReply = (reply: ConnectionReply) => reply.is_synthetic === true || isGuideAuthor(reply.user_id);
   const toggleLocationTag = (tag: string) => {
     setSelectedLocationTags((prev) => (prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]));
   };
@@ -545,15 +556,26 @@ export default function CommunityConnections() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (token && insertedReply?.id) {
+        setGuideTyping(true);
         try {
-          await fetch("/api/community-engage", {
+          const engageRes = await fetch("/api/community-engage", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ post_id: selectedPost.id, human_reply_id: insertedReply.id }),
           });
+          const engageBody = (await engageRes.json().catch(() => ({}))) as {
+            ok?: boolean;
+            skipped?: boolean;
+            reason?: string;
+          };
           await loadReplies(selectedPost.id);
+          if (engageBody.ok) {
+            toast.success("A community guide replied to your message.");
+          }
         } catch {
           /* guide reply is best-effort */
+        } finally {
+          setGuideTyping(false);
         }
       }
     } catch (error: unknown) {
@@ -624,6 +646,11 @@ export default function CommunityConnections() {
               {selectedPost.interests.map((interest) => (
                 <Badge key={interest}>{interest}</Badge>
               ))}
+              {isGuidePost(selectedPost) && (
+                <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                  Community guide
+                </Badge>
+              )}
             </div>
             <CardTitle className="text-2xl">{selectedPost.title}</CardTitle>
             <CardDescription>
@@ -653,8 +680,13 @@ export default function CommunityConnections() {
                       : "border border-[var(--landing-border)] bg-white/80 text-foreground"
                   }`}
                 >
-                  <p className={`mb-1 text-xs ${reply.user_id === currentUserId ? "text-white/80" : "text-muted-foreground"}`}>
-                    {getAuthorLine(reply.user_id)}
+                  <p className={`mb-1 text-xs flex flex-wrap items-center gap-1.5 ${reply.user_id === currentUserId ? "text-white/80" : "text-muted-foreground"}`}>
+                    <span>{getAuthorLine(reply.user_id)}</span>
+                    {isGuideReply(reply) && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-current/30">
+                        Guide
+                      </Badge>
+                    )}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
                   <p className={`mt-2 text-[11px] ${reply.user_id === currentUserId ? "text-white/70" : "text-muted-foreground"}`}>
@@ -663,8 +695,24 @@ export default function CommunityConnections() {
                 </div>
               </div>
             ))}
-            {!topLevelReplies.length && (
+            {!topLevelReplies.length && !guideTyping && (
               <p className="text-sm text-muted-foreground">No replies yet. Start the conversation respectfully.</p>
+            )}
+            {guideTyping && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl border border-[var(--landing-border)] bg-white/80 px-4 py-3 shadow-sm">
+                  <p className="mb-1 text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span>Community guide</span>
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                      Guide
+                    </Badge>
+                  </p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: "var(--landing-primary)" }} />
+                    Typing a reply…
+                  </p>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -683,9 +731,9 @@ export default function CommunityConnections() {
                 rows={4}
                 required
               />
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting || guideTyping}>
                 <MessageCircle className="mr-2 h-4 w-4" />
-                {submitting ? "Submitting..." : "Submit Reply"}
+                {submitting ? "Submitting..." : guideTyping ? "Guide is replying…" : "Submit Reply"}
               </Button>
             </form>
           </CardContent>
@@ -988,6 +1036,11 @@ export default function CommunityConnections() {
                         <Badge key={interest}>{interest}</Badge>
                       ))}
                       {post.moderation_status !== "approved" && <Badge variant="secondary">Pending review</Badge>}
+                      {isGuidePost(post) && (
+                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                          Community guide
+                        </Badge>
+                      )}
                     </div>
                     <h3 className="font-semibold">{post.title}</h3>
                     <p className="mt-1 text-xs text-muted-foreground">

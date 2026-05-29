@@ -48,3 +48,32 @@ export function pickReactiveReply(interest: CommunitySystemInterest, seed: numbe
   const pool = REACTIVE_REPLY_TEMPLATES[interest];
   return pool[Math.abs(seed) % pool.length] ?? pool[0];
 }
+
+/** Welcome reply when a real member's post is approved. */
+export const WELCOME_POST_TEMPLATES: Record<CommunitySystemInterest, string[]> = {
+  Spiritual: [
+    "Thank you for opening this thread — glad you are here. What would feel most supportive for you in this season?",
+    "Welcome. This is a gentle space to share without pressure. Looking forward to hearing more when you are ready.",
+  ],
+  "Healthy living": [
+    "Thanks for posting — small steps count. What is one habit you are hoping to build or protect right now?",
+    "Glad you brought this here. Cheering you on as you figure out what sustainable wellness looks like for you.",
+  ],
+  Recovery: [
+    "Thank you for sharing. You are welcome here — one day at a time is enough. What kind of support would help most?",
+    "Appreciate your courage in posting. This community is rooting for you.",
+  ],
+  Awakening: [
+    "Thank you for starting this conversation. Growth can feel messy — you are not alone in that.",
+    "Welcome. Curious what prompted you to post today, whenever you want to share more.",
+  ],
+  "Quantum mysticism": [
+    "Thanks for opening this thread — love thoughtful wonder here. What question are you sitting with lately?",
+    "Welcome. Happy to explore ideas respectfully alongside you.",
+  ],
+};
+
+export function pickWelcomeReply(interest: CommunitySystemInterest, seed: number): string {
+  const pool = WELCOME_POST_TEMPLATES[interest];
+  return pool[Math.abs(seed) % pool.length] ?? pool[0];
+}

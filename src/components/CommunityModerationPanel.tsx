@@ -354,6 +354,23 @@ export function CommunityModerationPanel() {
 
     await addEvent("connection_posts", post.id, status === "approved" ? "approved" : "removed", post.user_id, reason);
     toast.success(status === "approved" ? "Post approved." : "Post rejected.");
+
+    if (status === "approved" && !post.is_synthetic) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (token) {
+        try {
+          await fetch("/api/community-guide-welcome", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ post_id: post.id }),
+          });
+        } catch {
+          /* guide welcome is best-effort */
+        }
+      }
+    }
+
     await loadAll();
   };
 
@@ -584,6 +601,11 @@ export function CommunityModerationPanel() {
               placeholder="Optional moderation reason"
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            Production also runs a scheduled guide job twice daily (new posts/replies when quiet, plus welcome
+            comments on approved member posts with no replies). Disable with{" "}
+            <code className="text-[11px]">COMMUNITY_GUIDE_CRON_ENABLED=false</code> on Vercel.
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
