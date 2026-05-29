@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+import { getOpenAiApiKey, openAiAuthHeaders, OPENAI_CHAT_COMPLETIONS_URL } from "./lib/openAiEnv.js";
 
 const EMPTY_HINT =
   "Once you save a few appreciations in the categories above, we can reflect on what they say about your values and strengths.";
@@ -73,11 +72,11 @@ export default async function handler(
     return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY ?? process.env.VITE_OPENAI_API_KEY;
-  if (!apiKey?.trim()) {
+  const apiKey = getOpenAiApiKey();
+  if (!apiKey) {
     res.status(503).json({
       error: "AI summary not configured",
-      detail: "Set OPENAI_API_KEY on the server.",
+      detail: "Set OPENAI_API_KEY in .env.local (server routes; no project ID needed).",
     });
     return;
   }
@@ -146,12 +145,9 @@ Write a warm, concise reflection (2–4 short paragraphs) that:
 Do not invent facts not supported by the entries. No medical or clinical claims.`;
 
   try {
-    const response = await fetch(OPENAI_URL, {
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey.trim()}`,
-      },
+      headers: openAiAuthHeaders(apiKey),
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [

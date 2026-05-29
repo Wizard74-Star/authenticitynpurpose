@@ -1,10 +1,9 @@
 /**
  * Server-side chat completion for the site AI chatbot.
- * Uses OPENAI_API_KEY from server env (no CORS, key not exposed to client).
- * Same pattern as other AI features (e.g. AI insights after login).
+ * Uses OPENAI_API_KEY from .env.local (no OpenAI project ID).
  */
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+import { getOpenAiApiKey, openAiAuthHeaders, OPENAI_CHAT_COMPLETIONS_URL } from './lib/openAiEnv.js';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -29,11 +28,11 @@ export default async function handler(
     return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY ?? process.env.VITE_OPENAI_API_KEY;
-  if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
+  const apiKey = getOpenAiApiKey();
+  if (!apiKey) {
     res.status(503).json({
       error: 'AI chat not configured',
-      detail: 'Set OPENAI_API_KEY on the server (e.g. in .env or Vercel).',
+      detail: 'Set OPENAI_API_KEY in .env.local (VITE_OPENAI_API_KEY also works).',
     });
     return;
   }
@@ -57,12 +56,9 @@ export default async function handler(
   }
 
   try {
-    const response = await fetch(OPENAI_URL, {
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: openAiAuthHeaders(apiKey),
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages.map((m) => ({ role: m.role, content: m.content })),

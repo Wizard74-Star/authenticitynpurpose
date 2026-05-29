@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { pickInterestForPost, pickReactiveReply, pickWelcomeReply } from "./communityEngage.js";
+import { generateGuideReplyText } from "./communityGuideOpenAi.js";
 
 export const SEED_PERSONA_IDS = [
   "f47ac10b-58cc-4372-a567-0e02b2c3d601",
@@ -46,6 +46,32 @@ async function isSeedAccount(service: ServiceClient, userId: string): Promise<bo
   return Boolean(data?.is_seed_account);
 }
 
+async function loadThreadContext(
+  service: ServiceClient,
+  postId: string,
+  limit = 8,
+): Promise<{ label: string; content: string }[]> {
+  const { data: rows } = await service
+    .from("connection_replies")
+    .select("content, is_synthetic")
+    .eq("post_id", postId)
+    .eq("moderation_status", "approved")
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  return (rows ?? [])
+    .map((row) => {
+      const r = row as { content: string; is_synthetic?: boolean };
+      const text = (r.content ?? "").trim();
+      if (!text) return null;
+      return {
+        label: r.is_synthetic ? "Community guide" : "Member",
+        content: text,
+      };
+    })
+    .filter(Boolean) as { label: string; content: string }[];
+}
+
 async function insertGuideReply(
   service: ServiceClient,
   postId: string,
@@ -82,7 +108,7 @@ export async function reactToMemberReply(
 
   const { data: post } = await service
     .from("connection_posts")
-    .select("id, interests, moderation_status, user_id, is_synthetic")
+    .select("id, title, body, interests, moderation_status, user_id, is_synthetic")
     .eq("id", opts.postId)
     .maybeSingle();
 
@@ -92,7 +118,7 @@ export async function reactToMemberReply(
 
   const { data: humanReply } = await service
     .from("connection_replies")
-    .select("id, user_id, post_id, is_synthetic, created_at")
+    .select("id, user_id, post_id, is_synthetic, created_at, content")
     .eq("id", opts.humanReplyId)
     .maybeSingle();
 
@@ -127,9 +153,17 @@ export async function reactToMemberReply(
   }
 
   const interests = (post.interests as string[]) ?? [];
-  const interest = pickInterestForPost(interests);
   const seed = opts.humanReplyId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const content = pickReactiveReply(interest, seed);
+  const recentReplies = await loadThreadContext(service, opts.postId);
+  const content = await generateGuideReplyText({
+    mode: "reply",
+    postTitle: (post.title as string) ?? "",
+    postBody: (post.body as string) ?? "",
+    interests,
+    memberReply: (humanReply.content as string) ?? "",
+    recentReplies,
+    seed,
+  });
   const botUserId = pickPersona(opts.humanReplyId, opts.humanUserId);
 
   const delayMs = guideReplyDelayMs();
@@ -160,7 +194,7 @@ export async function welcomeApprovedMemberPost(
 
   const { data: post } = await service
     .from("connection_posts")
-    .select("id, user_id, interests, moderation_status, is_synthetic")
+    .select("id, user_id, title, body, interests, moderation_status, is_synthetic")
     .eq("id", postId)
     .maybeSingle();
 
@@ -184,9 +218,14 @@ export async function welcomeApprovedMemberPost(
   }
 
   const interests = (post.interests as string[]) ?? [];
-  const interest = pickInterestForPost(interests);
   const seed = postId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const content = pickWelcomeReply(interest, seed);
+  const content = await generateGuideReplyText({
+    mode: "welcome",
+    postTitle: (post.title as string) ?? "",
+    postBody: (post.body as string) ?? "",
+    interests,
+    seed,
+  });
   const botUserId = pickPersona(postId, post.user_id);
 
   return insertGuideReply(service, postId, content, botUserId);
