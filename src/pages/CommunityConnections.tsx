@@ -337,8 +337,6 @@ export default function CommunityConnections() {
   const isGuideAuthor = (userId: string) => identitiesById[userId]?.isSeedAccount === true;
 
   const isGuidePost = (post: ConnectionPost) => post.is_synthetic === true || isGuideAuthor(post.user_id);
-
-  const isGuideReply = (reply: ConnectionReply) => reply.is_synthetic === true || isGuideAuthor(reply.user_id);
   const toggleLocationTag = (tag: string) => {
     setSelectedLocationTags((prev) => (prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]));
   };
@@ -680,13 +678,8 @@ export default function CommunityConnections() {
                       : "border border-[var(--landing-border)] bg-white/80 text-foreground"
                   }`}
                 >
-                  <p className={`mb-1 text-xs flex flex-wrap items-center gap-1.5 ${reply.user_id === currentUserId ? "text-white/80" : "text-muted-foreground"}`}>
-                    <span>{getAuthorLine(reply.user_id)}</span>
-                    {isGuideReply(reply) && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-current/30">
-                        Guide
-                      </Badge>
-                    )}
+                  <p className={`mb-1 text-xs ${reply.user_id === currentUserId ? "text-white/80" : "text-muted-foreground"}`}>
+                    {getAuthorLine(reply.user_id)}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
                   <p className={`mt-2 text-[11px] ${reply.user_id === currentUserId ? "text-white/70" : "text-muted-foreground"}`}>
@@ -701,12 +694,7 @@ export default function CommunityConnections() {
             {guideTyping && (
               <div className="flex justify-start">
                 <div className="max-w-[85%] rounded-2xl border border-[var(--landing-border)] bg-white/80 px-4 py-3 shadow-sm">
-                  <p className="mb-1 text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span>Community guide</span>
-                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-                      Guide
-                    </Badge>
-                  </p>
+                  <p className="mb-1 text-xs text-muted-foreground">Community guide</p>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: "var(--landing-primary)" }} />
                     Typing a reply…
