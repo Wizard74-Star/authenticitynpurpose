@@ -8,7 +8,8 @@
  *      CRON_SECRET (recommended).
  */
 import { createClient } from '@supabase/supabase-js';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
+import type { ServiceAccount } from 'firebase-admin';
 import { sendResendEmail } from './lib/resendEmail.js';
 import { scheduledReminderEmailHtml } from './lib/brandEmailHtml.js';
 
@@ -30,6 +31,17 @@ type ReminderRow = {
   entity_type: string;
   channels: string[] | null;
 };
+
+function reminderNotificationTitle(reminder: ReminderRow): string {
+  if (reminder.entity_type === 'manifestation_todo') return 'To-Do Reminder';
+  if (reminder.type === 'event_reminder') return 'Event Reminder';
+  return 'Goal Reminder';
+}
+
+function reminderNotificationUrl(reminder: ReminderRow): string {
+  if (reminder.entity_type === 'manifestation_todo') return '/#to-do';
+  return '/';
+}
 
 type PrefRow = {
   user_id: string;
@@ -75,7 +87,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (serviceAccountJson) {
     if (!admin.apps.length) {
       try {
-        const serviceAccount = JSON.parse(serviceAccountJson) as admin.ServiceAccount;
+        const serviceAccount = JSON.parse(serviceAccountJson) as ServiceAccount;
         admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
       } catch (e) {
         console.error('Firebase Admin init error:', e);
@@ -151,31 +163,47 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     const tryEmail = resendConfigured && Boolean(emailTo);
 
     if (!tryPush && !tryEmail) {
-      await supabase.from('reminders').update({ is_sent: true }).eq('id', reminder.id);
+      console.warn(
+        'Skipping reminder',
+        reminder.id,
+        '- no delivery channel (missing FCM token and/or email not enabled)'
+      );
       continue;
     }
 
     if (tryPush && token) {
       try {
+        const title = reminderNotificationTitle(reminder);
+        const link = reminderNotificationUrl(reminder);
         await admin.messaging().send({
           token,
           notification: {
-            title: 'Goal Reminder',
+            title,
             body: reminder.message,
           },
           data: {
             type: reminder.type,
             entity_id: reminder.entity_id || '',
             entity_type: reminder.entity_type || '',
-            url: '/',
+            url: link,
           },
           webpush: {
-            fcmOptions: { link: '/' },
+            fcmOptions: { link },
           },
         });
         pushOk = true;
       } catch (e) {
         console.error('FCM send error for reminder', reminder.id, e);
+        const code = (e as { errorInfo?: { code?: string } })?.errorInfo?.code;
+        if (
+          code === 'messaging/registration-token-not-registered' ||
+          code === 'messaging/mismatched-credential'
+        ) {
+          await supabase
+            .from('reminder_preferences')
+            .update({ fcm_token: null })
+            .eq('user_id', reminder.user_id);
+        }
       }
     }
 
@@ -202,5 +230,5 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     }
   }
 
-  res.status(200).json({ sent, total: list.length });
+  res.status(200).json({ sent, total: list.length, failed: list.length - sent });
 }

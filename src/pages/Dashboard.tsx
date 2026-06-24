@@ -39,9 +39,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useManifestationDatabase } from '@/hooks/useManifestationDatabase';
+import { useManifestationDatabase, normalizeTimeSlot } from '@/hooks/useManifestationDatabase';
 import { useEvents } from '@/hooks/useEvents';
 import { useReminders } from '@/hooks/useReminders';
+import { useNotifications } from '@/hooks/useNotifications';
 import { EventDialog } from '@/components/EventDialog';
 import { DayTimelineView } from '@/components/DayTimelineView';
 import type { DayEventInput } from '@/lib/dayEventLayout';
@@ -192,6 +193,7 @@ export default function Dashboard() {
   const [todoListTab, setTodoListTab] = useState<string>('today');
   const [newTaskTimeSlot, setNewTaskTimeSlot] = useState('');
   const [newTaskGroup, setNewTaskGroup] = useState('');
+  const { permission, requestPermission: requestPushPermission } = useNotifications();
 
   useEffect(() => {
     if (goals.length === 0 && !localStorage.getItem('goals_app_dashboard_onboarding_done')) {
@@ -1135,17 +1137,34 @@ export default function Dashboard() {
                 </Tabs>
                 {todoListTab !== 'pending' && (
                   <form
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
                       const title = newTaskTitle.trim();
-                      if (title) {
-                        const iso = newTaskDay === 'today' ? todayIso : tomorrowIso;
-addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newTaskTimeSlot.trim() || undefined, groupName: newTaskGroup.trim() || undefined });
+                      if (!title) return;
+                      const timeSlot = normalizeTimeSlot(newTaskTimeSlot);
+                      if (newTaskTimeSlot.trim() && !timeSlot) {
+                        toast({ title: 'Invalid time', description: 'Use 24-hour format like 09:00 or 14:30.', variant: 'destructive' });
+                        return;
+                      }
+                      if (timeSlot && permission !== 'granted') {
+                        await requestPushPermission();
+                      }
+                      const iso = newTaskDay === 'today' ? todayIso : tomorrowIso;
+                      await addTodo({
+                        title,
+                        completed: false,
+                        points: 5,
+                        scheduledDate: iso,
+                        timeSlot: timeSlot || undefined,
+                        groupName: newTaskGroup.trim() || undefined,
+                      });
                       setNewTaskTitle('');
                       setNewTaskTimeSlot('');
                       setNewTaskGroup('');
-                      toast({ title: getEncouragement('taskAdded') });
-                      }
+                      toast({
+                        title: getEncouragement('taskAdded'),
+                        ...(timeSlot ? { description: `Reminder set for ${timeSlot}.` } : {}),
+                      });
                     }}
                     className="space-y-2 mt-4"
                   >
@@ -1157,7 +1176,7 @@ addTodo({ title, completed: false, points: 5, scheduledDate: iso, timeSlot: newT
                           <SelectTrigger className="w-[100px] sm:w-[110px] shrink-0" style={{ borderColor: 'var(--landing-border)', backgroundColor: '#f3f4f6' }}><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="today">Today</SelectItem><SelectItem value="tomorrow">Tomorrow</SelectItem></SelectContent>
                         </Select>
-                        <Input placeholder="Time" value={newTaskTimeSlot} onChange={(e) => setNewTaskTimeSlot(e.target.value)} className="w-[80px] sm:w-[100px] shrink-0" style={{ borderColor: 'var(--landing-border)', backgroundColor: '#f3f4f6' }} />
+                        <Input placeholder="Time" value={newTaskTimeSlot} onChange={(e) => setNewTaskTimeSlot(e.target.value)} className="w-[80px] sm:w-[100px] shrink-0" style={{ borderColor: 'var(--landing-border)', backgroundColor: '#f3f4f6' }} title="24-hour time, e.g. 09:00" />
                         <Button type="submit" size="sm" className="min-h-9 touch-manipulation shrink-0" style={{ backgroundColor: '#3f3f46', color: 'white' }} disabled={!newTaskTitle.trim()}><Plus className="h-4 w-4 mr-1" /> Add</Button>
                       </div>
                     </div>
@@ -1490,10 +1509,12 @@ function EditTaskDialog({
     e.preventDefault();
     if (!title.trim()) return;
     const scheduledDate = day === 'today' ? todayIso : tomorrowIso;
+    const normalizedTime = normalizeTimeSlot(timeSlot);
+    if (timeSlot.trim() && !normalizedTime) return;
     onSave({
       title: title.trim(),
       scheduledDate,
-      timeSlot: timeSlot.trim() || null,
+      timeSlot: normalizedTime,
       groupName: groupName.trim() || null,
     });
   };

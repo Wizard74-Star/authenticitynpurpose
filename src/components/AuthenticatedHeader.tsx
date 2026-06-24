@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
 import { HelpCircle, Bell, User, LogOut, CreditCard, LayoutDashboard, Menu, Users } from 'lucide-react';
 import logoImg from '@/assets/images/Logo.png';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ export const AuthenticatedHeader: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, recentNotifications, markNotificationsRead } = useNotifications();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -143,7 +144,13 @@ export const AuthenticatedHeader: React.FC = () => {
           </DropdownMenu>
 
           {/* Notifications */}
-          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+          <Popover
+            open={notificationOpen}
+            onOpenChange={(open) => {
+              setNotificationOpen(open);
+              if (open) markNotificationsRead();
+            }}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
@@ -154,9 +161,11 @@ export const AuthenticatedHeader: React.FC = () => {
                 <Bell className="h-5 w-5 text-[var(--landing-text)] group-hover:text-[var(--landing-primary)] transition-colors" />
                 {unreadCount > 0 && (
                   <span
-                    className="absolute top-1 right-1 h-2 w-2 rounded-full"
+                    className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold text-white flex items-center justify-center"
                     style={{ backgroundColor: 'var(--landing-primary)' }}
-                  />
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -167,14 +176,44 @@ export const AuthenticatedHeader: React.FC = () => {
                 </h3>
               </div>
               <div className="max-h-[300px] overflow-y-auto">
-                {unreadCount === 0 ? (
+                {recentNotifications.length === 0 ? (
                   <div className="p-4 text-center text-sm" style={{ color: 'var(--landing-text)', opacity: 0.8 }}>
-                    No new notifications
+                    No notifications yet. To-do reminders will appear here.
                   </div>
                 ) : (
-                  <div className="p-4 text-sm" style={{ color: 'var(--landing-text)' }}>
-                    You have {unreadCount} pending reminder{unreadCount !== 1 ? 's' : ''}. Check your calendar or reminders.
-                  </div>
+                  <ul className="divide-y" style={{ borderColor: 'var(--landing-border)' }}>
+                    {recentNotifications.map((n) => (
+                      <li key={n.id}>
+                        <button
+                          type="button"
+                          className="w-full text-left p-3 hover:bg-[var(--landing-hover-bg)] transition-colors"
+                          onClick={() => {
+                            setNotificationOpen(false);
+                            if (n.url) {
+                              const [path, hash] = n.url.split('#');
+                              const target = path && path !== '/' ? path : '/';
+                              navigate(target);
+                              if (hash) {
+                                setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' }), 150);
+                              }
+                            }
+                          }}
+                        >
+                          <p className="text-sm font-medium" style={{ color: 'var(--landing-text)' }}>
+                            {n.title}
+                          </p>
+                          {n.body && (
+                            <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--landing-text)', opacity: 0.8 }}>
+                              {n.body}
+                            </p>
+                          )}
+                          <p className="text-[11px] mt-1" style={{ color: 'var(--landing-text)', opacity: 0.55 }}>
+                            {formatDistanceToNow(new Date(n.receivedAt), { addSuffix: true })}
+                          </p>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </PopoverContent>

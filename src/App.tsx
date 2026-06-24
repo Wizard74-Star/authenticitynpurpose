@@ -88,7 +88,7 @@ const App = () => (
               <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><AuthenticatedLayout><Dashboard /></AuthenticatedLayout></ProtectedRoute>} />
               <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
               <Route path="/goals" element={<ProtectedRoute><AuthenticatedLayout><Goals /></AuthenticatedLayout></ProtectedRoute>} />
               <Route path="/admin" element={<Admin />} />

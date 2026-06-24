@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,13 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNotifications } from '@/hooks/useNotifications';
 
 export function NotificationManager() {
-  const { permission, unreadCount, requestPermission, loadUnreadCount } = useNotifications();
-
-  useEffect(() => {
-    loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const { permission, unreadCount, requestPermission } = useNotifications();
 
   return (
     <Card>

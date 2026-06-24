@@ -58,6 +58,14 @@ export async function requestNotificationPermission(): Promise<string | null> {
       return null;
     }
 
+    if ('serviceWorker' in navigator) {
+      try {
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      } catch (e) {
+        console.warn('Firebase messaging service worker registration failed:', e);
+      }
+    }
+
     const token = await getToken(instance, { vapidKey });
     if (token) {
       return token;

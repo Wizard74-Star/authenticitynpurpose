@@ -164,15 +164,22 @@ function persistDemo(state: { goals: ManifestationGoal[]; todos: ManifestationTo
   }
 }
 
-const DEFAULT_TODO_TIME = '09:00';
-
-function parseTodoReminderAt(scheduledDate: string, timeSlot: string): Date | null {
-  const t = timeSlot.trim();
+/** Normalize user time input (e.g. "9:00", "09:00") to HH:MM, or null if invalid. */
+export function normalizeTimeSlot(timeSlot: string | null | undefined): string | null {
+  const t = timeSlot?.trim();
+  if (!t) return null;
   const m = /^(\d{1,2}):(\d{2})$/.exec(t);
   if (!m) return null;
   const h = Number(m[1]);
   const min = Number(m[2]);
   if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+function parseTodoReminderAt(scheduledDate: string, timeSlot: string): Date | null {
+  const normalized = normalizeTimeSlot(timeSlot);
+  if (!normalized) return null;
+  const [h, min] = normalized.split(':').map(Number);
   const d = new Date(
     `${scheduledDate.trim()}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
   );
@@ -180,7 +187,8 @@ function parseTodoReminderAt(scheduledDate: string, timeSlot: string): Date | nu
 }
 
 function todoEventAt(scheduledDate: string, timeSlot?: string | null): Date | null {
-  const slot = (timeSlot?.trim() || DEFAULT_TODO_TIME);
+  const slot = normalizeTimeSlot(timeSlot);
+  if (!slot) return null;
   return parseTodoReminderAt(scheduledDate, slot);
 }
 
@@ -211,7 +219,7 @@ async function clearManifestationTodoReminders(userId: string, todoId: string) {
     .eq('entity_type', 'manifestation_todo');
 }
 
-/** One reminder: 1 hour before the to-do time; if under 1h away, schedule ~1 min from now. */
+/** Push/email reminder at the to-do's scheduled date and time (requires a valid time slot). */
 async function upsertTodoTimeReminders(userId: string, todo: ManifestationTodo) {
   await clearManifestationTodoReminders(userId, todo.id);
   if (todo.completed) return;
@@ -219,25 +227,39 @@ async function upsertTodoTimeReminders(userId: string, todo: ManifestationTodo) 
   if (!sd) return;
   const at = todoEventAt(sd, todo.timeSlot);
   if (!at) return;
-  const eventMs = at.getTime();
-  const now = Date.now();
-  if (eventMs <= now) return;
+  if (at.getTime() <= Date.now()) return;
 
-  const oneHourBefore = eventMs - 3600_000;
-  const reminderMs = oneHourBefore > now ? oneHourBefore : now + 60_000;
-  const whenLabel = todo.timeSlot?.trim()
-    ? `${todo.timeSlot.trim()} on ${sd}`
-    : `${DEFAULT_TODO_TIME} on ${sd}`;
+  const { data: pref } = await supabase
+    .from('reminder_preferences')
+    .select('smart_reminders_enabled, push_enabled')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (pref?.smart_reminders_enabled === false) return;
+
+  const channels: string[] = [];
+  if (pref?.push_enabled !== false) channels.push('push');
+  channels.push('email');
+  if (!channels.length) return;
 
   await supabase.from('reminders').insert({
     user_id: userId,
     type: 'smart_reminder',
     entity_type: 'manifestation_todo',
     entity_id: todo.id,
-    reminder_time: new Date(reminderMs).toISOString(),
-    channels: ['push', 'email'],
-    message: `Your to-do “${todo.title}” is coming up (${whenLabel}). You still have room to settle in before it arrives.`,
+    reminder_time: at.toISOString(),
+    channels,
+    message: todo.title,
   });
+}
+
+/** Ensure pending to-dos with a time slot have a scheduled push reminder. */
+async function syncAllTodoTimeReminders(userId: string, todoList: ManifestationTodo[]) {
+  await Promise.all(
+    todoList
+      .filter((t) => !t.completed && t.scheduledDate && normalizeTimeSlot(t.timeSlot))
+      .map((t) => upsertTodoTimeReminders(userId, t))
+  );
 }
 
 async function clearManifestationGoalReminders(userId: string, goalId: string) {
@@ -415,19 +437,19 @@ export function useManifestationDatabase() {
         );
       }
       if (todosRes.data) {
-        setTodos(
-          (todosRes.data as ManifestationTodoRow[]).map((r) => ({
-            id: r.id,
-            title: r.title,
-            completed: r.completed,
-            points: r.points,
-            createdAt: r.created_at,
-            scheduledDate: r.scheduled_date ?? null,
-            completedAt: r.completed_at ?? null,
-            timeSlot: r.time_slot ?? null,
-            groupName: r.group_name ?? null,
-          }))
-        );
+        const loadedTodos = (todosRes.data as ManifestationTodoRow[]).map((r) => ({
+          id: r.id,
+          title: r.title,
+          completed: r.completed,
+          points: r.points,
+          createdAt: r.created_at,
+          scheduledDate: r.scheduled_date ?? null,
+          completedAt: r.completed_at ?? null,
+          timeSlot: r.time_slot ?? null,
+          groupName: r.group_name ?? null,
+        }));
+        setTodos(loadedTodos);
+        void syncAllTodoTimeReminders(user.id, loadedTodos);
       }
       if (gratitudeRes.data) {
         setGratitudeEntries(
@@ -766,7 +788,8 @@ export function useManifestationDatabase() {
         points: todo.points,
       };
       if (todo.scheduledDate) payload.scheduled_date = todo.scheduledDate;
-      if (todo.timeSlot) payload.time_slot = todo.timeSlot;
+      const normalizedSlot = normalizeTimeSlot(todo.timeSlot);
+      if (normalizedSlot) payload.time_slot = normalizedSlot;
       if (todo.groupName) payload.group_name = todo.groupName;
       const { data, error } = await supabase.from('manifestation_todos').insert(payload).select('id,created_at,scheduled_date,completed_at,time_slot,group_name').single();
       if (error) throw error;
@@ -780,7 +803,7 @@ export function useManifestationDatabase() {
         groupName: data.group_name ?? null,
       };
       setTodos(prev => [row, ...prev]);
-      await upsertTodoTimeReminders(user.id, row);
+      if (normalizedSlot) await upsertTodoTimeReminders(user.id, row);
     } finally {
       setIsMutating(false);
     }
@@ -828,6 +851,7 @@ export function useManifestationDatabase() {
   };
 
   const deleteTodo = async (todoId: string) => {
+    const todo = todos.find(t => t.id === todoId);
     setIsMutating(true);
     try {
       if (useLocalStorageOnly) {
@@ -843,7 +867,7 @@ export function useManifestationDatabase() {
       setTodos(prev => prev.filter(t => t.id !== todoId));
       void sendTransactionalEmail({
         kind: 'manifestation_todo_deleted',
-        payload: { title: todo.title },
+        payload: { title: todo?.title ?? 'Task' },
       });
     } finally {
       setIsMutating(false);
@@ -867,11 +891,20 @@ export function useManifestationDatabase() {
       const payload: Record<string, unknown> = {};
       if (updates.title !== undefined) payload.title = updates.title;
       if (updates.scheduledDate !== undefined) payload.scheduled_date = updates.scheduledDate;
-      if (updates.timeSlot !== undefined) payload.time_slot = updates.timeSlot;
+      if (updates.timeSlot !== undefined) {
+        const normalizedSlot = normalizeTimeSlot(updates.timeSlot);
+        payload.time_slot = normalizedSlot;
+      }
       if (updates.groupName !== undefined) payload.group_name = updates.groupName;
       if (Object.keys(payload).length === 0) return;
       await supabase.from('manifestation_todos').update(payload).eq('id', todoId).eq('user_id', user.id);
-      const merged: ManifestationTodo = { ...todo, ...updates };
+      const merged: ManifestationTodo = {
+        ...todo,
+        ...updates,
+        ...(updates.timeSlot !== undefined
+          ? { timeSlot: normalizeTimeSlot(updates.timeSlot) }
+          : {}),
+      };
       setTodos(prev => prev.map(t => (t.id === todoId ? merged : t)));
       await upsertTodoTimeReminders(user.id, merged);
     } finally {
