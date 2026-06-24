@@ -11,6 +11,9 @@ export type InboxNotification = {
 
 const MAX_INBOX = 50;
 
+/** Fired on window when inbox localStorage changes (same tab + cross-component sync). */
+export const INBOX_UPDATED_EVENT = 'ap-notification-inbox-updated';
+
 function storageKey(userId: string): string {
   return `ap_notification_inbox_${userId}`;
 }
@@ -29,6 +32,9 @@ export function loadInbox(userId: string): InboxNotification[] {
 function persistInbox(userId: string, items: InboxNotification[]): void {
   try {
     localStorage.setItem(storageKey(userId), JSON.stringify(items.slice(0, MAX_INBOX)));
+    window.dispatchEvent(
+      new CustomEvent(INBOX_UPDATED_EVENT, { detail: { userId } })
+    );
   } catch {
     /* quota / private mode */
   }

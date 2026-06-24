@@ -28,11 +28,19 @@ messaging.onBackgroundMessage((payload) => {
     actions: [{ action: 'open', title: 'Open' }],
   };
 
-  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-    for (const client of clientList) {
-      client.postMessage({ type: 'FCM_BACKGROUND', payload });
-    }
-  });
+  const message = { type: 'FCM_BACKGROUND', payload };
+  try {
+    const channel = new BroadcastChannel('ap-fcm-notifications');
+    channel.postMessage(message);
+    channel.close();
+  } catch (_) {
+    /* BroadcastChannel unavailable — fall back to client postMessage */
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        client.postMessage(message);
+      }
+    });
+  }
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });

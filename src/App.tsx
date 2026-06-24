@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { StorageModeProvider } from "@/contexts/StorageModeContext";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -61,6 +62,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <NotificationProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -101,6 +103,7 @@ const App = () => (
             </TimezoneProvider>
             </StorageModeProvider>
           </BrowserRouter>
+          </NotificationProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
